@@ -1,2 +1,12 @@
+* {
+    box-sizing: border-box;
+    font-family: "DM Sans", sans-serif;
+}
+
 .App {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
