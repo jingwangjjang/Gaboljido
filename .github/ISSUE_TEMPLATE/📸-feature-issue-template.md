@@ -1,6 +1,6 @@
 ---
 name: "\U0001F4F8 Feature Issue Template"
-about: Feature 이슈 템플릿입니다.
+about: 새로운 기능 구현시
 title: "[Feat] 어쩌고-저쩌고"
 labels: feat
 assignees: ''
