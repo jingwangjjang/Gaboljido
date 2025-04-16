@@ -1,6 +1,6 @@
 ---
 name: "\U0001F43C Chore Issue Template"
-about: Chore Issue 템플릿입니다
+about: 버전 코드 수정, 패키지 구조 변경, 타입 및 변수명 변경 등의 작은 작업
 title: "[Chore] 어쩌고-저쩌고"
 labels: chore
 assignees: ''
