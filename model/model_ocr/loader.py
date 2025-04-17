@@ -1,3 +1,4 @@
+from ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
 import os
 import torch
 import numpy as np
@@ -9,30 +10,36 @@ import time
 import json
 import tempfile
 from typing import List, Dict, Any, Tuple, Optional
-
+from dotenv import load_dotenv 
+'''
+참고
+model_path = 
+conf_threshold = 0.3 
+'''
+load_dotenv()
 logger = logging.getLogger("subtitle-detector.loader")
 
 class YOLOSubtitleDetector:
     """
     YOLO 모델을 사용한 자막 검출 및 OCR 처리를 수행하는 클래스
     """
-    def __init__(self, model_path: str, ocr_secret_key: str, ocr_invoke_url: str, conf_threshold: float = 0.25):
+    def __init__(self, model_path: str, ocr_secret_key: str, ocr_invoke_url: str, conf_threshold: float = 0.3):
         """
         초기화 함수
         
         Args:
-            model_path (str): YOLO 모델 경로
+            model_path (str): YOLO 모델 경로 "/model_ocr/yolo_best.pt"
             ocr_secret_key (str): Clova OCR API 키
             ocr_invoke_url (str): Clova OCR API URL
-            conf_threshold (float): 검출 신뢰도 임계값
+            conf_threshold (float): 검출 신뢰도 임계값으로 줄이면 더 많이 잡는데 오탐이 많아짐 현재 0.3
         """
         self.model_path = model_path
-        self.ocr_secret_key = ocr_secret_key
-        self.ocr_invoke_url = ocr_invoke_url
+        self.ocr_secret_key = os.getenv("CLOVA_OCR_SECRET_KEY")
+        self.ocr_invoke_url = os.getenv("CLOVA_OCR_API_URL")
         self.conf_threshold = conf_threshold
         self.model = self._load_model()
         
-    def _load_model(self):
+    def _load_model(self): 
         """YOLO 모델 로드"""
         try:
             logger.info(f"YOLO 모델 로드 중: {self.model_path}")
@@ -57,127 +64,85 @@ class YOLOSubtitleDetector:
             logger.error(f"모델 로드 중 오류 발생: {e}")
             raise RuntimeError(f"모델 로드 실패: {e}")
     
-    def detect_subtitles(self, image: np.ndarray) -> np.ndarray:
+
+    def detect_subtitle_crops(self, image: np.ndarray) -> list:
         """
-        이미지에서 자막 영역 검출
-        
+        YOLO 모델을 이용하여 단일 이미지에서 자막 영역 검출 후, 해당 영역의 크롭 이미지를 반환
+
         Args:
-            image (np.ndarray): 이미지 NumPy 배열
-            
+            model: YOLO 모델 객체
+            image (np.ndarray): 입력 이미지 (BGR 형태), extract_frames_from_video에서 numpy 배열로 변환된 이미지들들
+
         Returns:
-            np.ndarray: 검출된 박스 좌표 배열 [x1, y1, x2, y2]
+            List[np.ndarray]: 검출된 각 자막 영역에 대한 크롭 이미지 리스트
         """
         try:
-            # NumPy 이미지를 임시 파일로 저장 (YOLO 모델이 직접 NumPy 배열을 처리할 수 없는 경우)
+            # NumPy 배열을 임시 이미지 파일로 저장
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
                 cv2.imwrite(temp_file.name, image)
                 temp_path = temp_file.name
-            
+
             try:
-                # YOLO 추론 실행
                 results = self.model(temp_path)
-                
-                # 결과에서 박스 좌표 추출
                 boxes = results.xyxy[0].cpu().numpy()
-                
-                # 좌표만 반환 (x1, y1, x2, y2)
-                return boxes[:, :4]
-            
+
+                crops = []
+                for box in boxes:
+                    x1, y1, x2, y2 = map(int, box[:4])
+                    crop = image[y1:y2, x1:x2]
+                    crops.append(crop)
+                return crops
+
             finally:
-                # 임시 파일 삭제
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
-        
+
         except Exception as e:
-            logger.error(f"자막 검출 중 오류 발생: {e}")
-            return np.array([])
-    
-    def extract_text_with_ocr(self, image: np.ndarray, boxes: np.ndarray) -> List[str]:
-        """
-        이미지에서 검출된 박스 영역의 텍스트 추출
-        
-        Args:
-            image (np.ndarray): 이미지 NumPy 배열
-            boxes (np.ndarray): 검출된 박스 좌표 배열
-            
-        Returns:
-            List[str]: 각 박스별 추출된 텍스트 목록
-        """
-        try:
-            texts = []
-            
-            # 각 박스 영역에 대해 OCR 수행
-            for box in boxes:
-                x1, y1, x2, y2 = map(int, box)
-                
-                # 박스 영역 추출
-                cropped = image[y1:y2, x1:x2]
-                
-                # 너무 작은 영역은 제외
-                if cropped.size == 0 or cropped.shape[0] < 10 or cropped.shape[1] < 10:
-                    texts.append("")
-                    continue
-                
-                # OCR 수행
-                ocr_result = self._call_clova_ocr(cropped)
-                text = self._extract_text_from_ocr_result(ocr_result)
-                texts.append(text)
-            
-            return texts
-        
-        except Exception as e:
-            logger.error(f"OCR 처리 중 오류 발생: {e}")
+            #print(f"[ERROR] 자막 크롭 중 오류 발생: {e}")
             return []
-    
-    def _call_clova_ocr(self, image: np.ndarray) -> Dict[str, Any]:
-        """
-        Clova OCR API 호출
         
+    def _call_clova_ocr_image(self, image_np_array, api_url, secret_key):
+        """
+        YOLO 모델을 이용하여 단일 이미지에서 자막 영역 검출 후, 해당 영역의 크롭 이미지를 반환
+
         Args:
-            image (np.ndarray): OCR을 수행할 이미지
-            
+            image_np_array : detect_subtitle_crops에서 return한 crop된 이미지들들
+            api_url : clova api_url
+            secret_key : clova secret key
+
         Returns:
-            Dict[str, Any]: OCR 결과 JSON
+            
         """
+        # numpy array를 JPEG 바이트로 변환
+        _, img_encoded = cv2.imencode('.jpg', image_np_array)
+        image_bytes = img_encoded.tobytes()
+
+        request_json = {
+            'images': [
+                {
+                    'format': 'jpg',
+                    'name': 'box_crop'
+                }
+            ],
+            'requestId': str(uuid.uuid4()),
+            'version': 'V2',
+            'timestamp': int(round(time.time() * 1000))
+        }
+
+        payload = {'message': json.dumps(request_json).encode('UTF-8')}
+        files = [('file', ('crop.jpg', image_bytes, 'image/jpeg'))]
+        headers = {
+            'X-OCR-SECRET': secret_key
+        }
+
         try:
-            # 이미지를 JPEG 바이트로 변환
-            _, img_encoded = cv2.imencode('.jpg', image)
-            image_bytes = img_encoded.tobytes()
-            
-            # API 요청 데이터 준비
-            request_json = {
-                'images': [
-                    {
-                        'format': 'jpg',
-                        'name': 'subtitle_area'
-                    }
-                ],
-                'requestId': str(uuid.uuid4()),
-                'version': 'V2',
-                'timestamp': int(round(time.time() * 1000))
-            }
-            
-            payload = {'message': json.dumps(request_json).encode('UTF-8')}
-            files = [('file', ('image.jpg', image_bytes, 'image/jpeg'))]
-            headers = {
-                'X-OCR-SECRET': self.ocr_secret_key
-            }
-            
-            # API 호출
-            response = requests.post(
-                self.ocr_invoke_url,
-                headers=headers,
-                data=payload,
-                files=files,
-                timeout=10
-            )
+            response = requests.post(api_url, headers=headers, data=payload, files=files, timeout=10)
             response.raise_for_status()
-            
             return response.json()
-        
-        except Exception as e:
-            logger.error(f"Clova OCR API 호출 중 오류 발생: {e}")
-            return {"images": [{"fields": []}]}
+        except requests.exceptions.RequestException as e:
+            #print(f"❌ CLOVA OCR 요청 실패: {e}")
+            return {"images": [{"fields": []}]}  # 기본 빈 응답
+    
     
     def _extract_text_from_ocr_result(self, result: Dict[str, Any]) -> str:
         """
@@ -202,171 +167,79 @@ class YOLOSubtitleDetector:
         except Exception as e:
             logger.error(f"OCR 결과 파싱 중 오류 발생: {e}")
             return ""
-    
-    def process_frames(self, frames_info: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    def extract_text_with_ocr(self, crops: List[np.ndarray]) -> List[str]:
         """
-        프레임 이미지들에 대해 자막 검출 및 OCR 처리 수행
-        
+        여러 개의 크롭된 이미지에 대해 OCR 수행행
+
         Args:
-            frames_info (List[Dict[str, Any]]): 프레임 정보 목록
-                {
-                    "frame_number": int,
-                    "timestamp": float,
-                    "image": np.ndarray
-                }
-            
+            crops : numpy 배열의 crop된 이미지들들
+
         Returns:
-            List[Dict[str, Any]]: 자막 검출 결과 목록
+            List[str]: 각 이미지에서 추출된 텍스트
         """
-        results = []
-        total_frames = len(frames_info)
-        
-        logger.info(f"총 {total_frames}개 프레임 처리 시작")
-        
+        texts = []
+        for crop in crops:
+            if crop.size == 0 or crop.shape[0] < 10 or crop.shape[1] < 10:
+                texts.append("")
+                continue
+            # 전처리
+            preprocessed = preprocess_image_for_ocr(crop)
+
+            # 클로바 OCR 바로 호출 (NumPy 배열 사용) call_clova_ocr_image는 인식까지만 하고 _extract_text_from_ocr_result는 텍스트 추출출
+            ocr_result = self._call_clova_ocr_image(preprocessed, self.api_url, self.secret_key)
+            text = self._extract_text_from_ocr_result(ocr_result)
+            texts.append(text)
+
+        return texts
+    
+    def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5) -> List[str]:
+        from ocr_utils import download_youtube_video, extract_frames_from_video
+
+        # 1. 유튜브 영상 다운로드
+        video_data = download_youtube_video(youtube_url)
+        if video_data is None:
+            logger.error("❌ YouTube 영상 다운로드 실패")
+            return []
+
+        # 2. 프레임 추출
+        frames_info = extract_frames_from_video(video_data["frames"], interval_sec)
+
+        # 3. 자막 검출 + OCR
+        raw_texts = []
         for i, frame_info in enumerate(frames_info):
-            # 프레임 번호와 타임스탬프 가져오기
-            frame_number = frame_info.get("frame_number", i)
-            timestamp = frame_info.get("timestamp", 0)
-            
-            # 이미지 데이터 가져오기
             image = frame_info.get("image")
             if image is None:
-                logger.warning(f"프레임 {i}에 이미지 데이터가 없습니다.")
                 continue
-            
-            # 처리 진행 상황 로깅
-            if (i + 1) % 10 == 0 or i + 1 == total_frames:
-                logger.info(f"프레임 처리 중: {i+1}/{total_frames} ({(i+1)/total_frames*100:.1f}%)")
-            
-            # 자막 영역 검출
-            boxes = self.detect_subtitles(image)
-            
-            # 검출된 자막 영역이 없으면 다음 프레임으로
-            if len(boxes) == 0:
+
+            crops = self.detect_subtitle_crops(image)
+            if len(crops) == 0:
                 continue
-            
-            # OCR 수행
-            texts = self.extract_text_with_ocr(image, boxes)
-            
-            # 결과 저장
-            for box_idx, (box, text) in enumerate(zip(boxes, texts)):
-                if not text:  # 빈 텍스트는 건너뜀
+
+            texts = self.extract_text_with_ocr(crops)
+            for crop_idx, text in enumerate(texts):
+                if not text.strip():
                     continue
-                
-                results.append({
-                    "frame_number": frame_number,
-                    "timestamp": timestamp,
-                    "box_index": box_idx,
-                    "box_coordinates": box.tolist(),
-                    "text": text
-                })
-        
-        logger.info(f"프레임 처리 완료: {len(results)}개 자막 검출됨")
-        return results
-    
-    def process_single_image(self, image: np.ndarray) -> List[Dict[str, Any]]:
-        """
-        단일 이미지에 대해 자막 검출 및 OCR 처리 수행
-        
-        Args:
-            image (np.ndarray): 이미지 NumPy 배열
-            
-        Returns:
-            List[Dict[str, Any]]: 자막 검출 결과 목록
-        """
-        try:
-            # 자막 영역 검출
-            boxes = self.detect_subtitles(image)
-            
-            # 검출된 자막 영역이 없으면 빈 리스트 반환
-            if len(boxes) == 0:
-                return []
-            
-            # OCR 수행
-            texts = self.extract_text_with_ocr(image, boxes)
-            
-            # 결과 생성
-            results = []
-            for box_idx, (box, text) in enumerate(zip(boxes, texts)):
-                if not text:  # 빈 텍스트는 건너뜀
-                    continue
-                
-                results.append({
-                    "box_index": box_idx,
-                    "box_coordinates": box.tolist(),
-                    "text": text
-                })
-            
-            return results
-        
-        except Exception as e:
-            logger.error(f"이미지 처리 중 오류 발생: {e}")
-            return []
-    
-    def process_video(self, video_data: np.ndarray, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-        """
-        비디오 NumPy 배열을 처리하여 자막을 검출합니다.
-        
-        Args:
-            video_data (np.ndarray): 비디오 데이터 NumPy 배열 (프레임, 높이, 너비, 채널)
-            interval_sec (float): 프레임 추출 간격(초)
-            
-        Returns:
-            List[Dict[str, Any]]: 자막 검출 결과 목록
-        """
-        from model_ocr.utils import extract_frames_from_video
-        
-        # 프레임 추출
-        frames_info = extract_frames_from_video(video_data, interval_sec)
-        
-        # 추출된 프레임에서 자막 검출 및 OCR 수행
-        return self.process_frames(frames_info)
-    
-    def process_video_file(self, file_path: str, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-        """
-        비디오 파일을 처리하여 자막을 검출합니다.
-        
-        Args:
-            file_path (str): 비디오 파일 경로
-            interval_sec (float): 프레임 추출 간격(초)
-            
-        Returns:
-            List[Dict[str, Any]]: 자막 검출 결과 목록
-        """
-        from model_ocr.utils import extract_frames_from_file
-        
-        # 프레임 추출
-        frames_info = extract_frames_from_file(file_path, interval_sec)
-        
-        # 추출된 프레임에서 자막 검출 및 OCR 수행
-        return self.process_frames(frames_info)
-    
-    def process_youtube_url(self, youtube_url: str, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-        """
-        YouTube URL에서 영상을 다운로드하고 자막을 검출합니다.
-        
-        Args:
-            youtube_url (str): YouTube URL
-            interval_sec (float): 프레임 추출 간격(초)
-            
-        Returns:
-            List[Dict[str, Any]]: 자막 검출 결과 목록
-        """
-        from model_ocr.utils import download_youtube_video
-        
-        # YouTube 영상 다운로드
-        video_data = download_youtube_video(youtube_url)
-        
-        if video_data is None:
-            logger.error("YouTube 영상 다운로드 실패")
-            return []
-        
-        # 비디오 처리
-        return self.process_video(video_data, interval_sec)
+                logger.info(f"[Frame {i}] Crop {crop_idx}: '{text.strip()}'")
+                raw_texts.append(text.strip())
+
+        # ✅ 중복 제거
+        deduped_texts = []
+        if raw_texts:
+            seen = set()
+            for text in raw_texts:
+                if text not in seen:
+                    seen.add(text)
+                    deduped_texts.append(text)
+
+        logger.info(f"✅ 파이프라인 완료: {len(deduped_texts)}개 자막 검출됨")
+        return deduped_texts
+
+
     
     def __del__(self):
         """소멸자: 모델 메모리 해제"""
-        if hasattr(self, 'model'):
+        if hasattr(self, 'model') and self.model is not None:
             del self.model
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
