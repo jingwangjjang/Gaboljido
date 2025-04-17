@@ -5,94 +5,90 @@ import subprocess
 import logging
 import tempfile
 import numpy as np
-import uuid
-from typing import List, Dict, Any, Optional, Tuple, BinaryIO
+from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger("subtitle-detector.utils")
 
-def download_youtube_video(url: str) -> Optional[np.ndarray]:
+def download_youtube_video(url: str) -> Optional[Dict[str, Any]]:
     """
-    yt-dlp를 사용하여 YouTube 영상을 다운로드하고 NumPy 배열로 반환합니다.
-    
+    yt-dlp를 사용하여 YouTube 영상을 다운로드하고,
+    영상 프레임(np.ndarray), 오디오(mp3), 자막(SRT)을 반환합니다.
+
     Args:
         url (str): YouTube URL
-    
+
     Returns:
-        Optional[np.ndarray]: 비디오 데이터의 NumPy 배열, 실패 시 None
+        Optional[Dict[str, Any]]: {
+            'frames': np.ndarray,
+            'audio_path': str,
+            'subtitle_path': str
+        }
     """
     try:
-        # YouTube URL 형식 검증 및 변환
         url = convert_youtube_url(url)
         if not url:
             logger.error("유효하지 않은 YouTube URL입니다.")
             return None
-        
-        logger.info(f"YouTube 영상 다운로드 중: {url}")
-        
-        # 임시 파일 생성
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
-            temp_path = temp_file.name
-        
-        try:
-            # yt-dlp 명령 구성
+
+        logger.info(f"YouTube 영상 및 자막 다운로드 중: {url}")
+
+        # 임시 파일 생성 경로
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            video_path = os.path.join(tmp_dir, "video.mp4")
+            audio_path = os.path.join(tmp_dir, "audio.mp3")
+            subtitle_path = os.path.join(tmp_dir, "subtitle.srt")
+
+            # yt-dlp 명령 구성 (영상 + 자막 + 오디오)
             cmd = [
                 "yt-dlp",
                 url,
-                "-f", "best[ext=mp4]",  # 최상의 mp4 포맷
-                "-o", temp_path,        # 임시 출력 파일 경로
-                "--no-playlist",        # 재생목록이 아닌 단일 영상만 다운로드
-                "--quiet"               # 상세 출력 비활성화
+                "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+                "--write-auto-sub",  # 자동 자막 다운로드
+                "--sub-lang", "ko,en",  # 한글/영어 우선
+                "--convert-subs", "srt",  # 자막을 .srt로 변환
+                "--output", os.path.join(tmp_dir, "video.%(ext)s"),
+                "--quiet"
             ]
-            
-            # 명령 실행
+
             subprocess.run(cmd, check=True)
-            
-            # 다운로드 결과 확인
-            if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
-                logger.info(f"YouTube 영상 다운로드 완료: {temp_path}")
-                
-                # 비디오 파일을 NumPy 배열로 변환
-                cap = cv2.VideoCapture(temp_path)
-                if not cap.isOpened():
-                    logger.error("다운로드한 비디오 파일을 열 수 없습니다.")
-                    return None
-                
-                # 비디오 속성 가져오기
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                
-                logger.info(f"비디오 정보: {fps:.2f} FPS, {width}x{height}, 총 {total_frames}프레임")
-                
-                # 비디오 데이터를 NumPy 배열로 읽기
-                frames = []
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frames.append(frame)
-                
-                cap.release()
-                
-                # 3차원 배열 (프레임, 높이, 너비, 채널)로 변환
-                return np.array(frames)
-            else:
-                logger.error("다운로드된 파일이 없거나 크기가 0입니다.")
+
+            # ▶️ 영상 → NumPy 배열로 로드
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                logger.error("다운로드한 비디오 파일을 열 수 없습니다.")
                 return None
-                
-        finally:
-            # 임시 파일 삭제
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-                logger.info(f"임시 파일 삭제됨: {temp_path}")
-    
+
+            frames = []
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frames.append(frame)
+            cap.release()
+
+            logger.info(f"✅ 총 {len(frames)} 프레임 읽음")
+
+            # 오디오 및 자막 파일 경로 확인
+            # 확장자 자동 결정된 파일 찾기
+            audio_files = [f for f in os.listdir(tmp_dir) if f.endswith(".mp3")]
+            sub_files = [f for f in os.listdir(tmp_dir) if f.endswith(".srt")]
+
+            audio_final = os.path.join(tmp_dir, audio_files[0]) if audio_files else None
+            sub_final = os.path.join(tmp_dir, sub_files[0]) if sub_files else None
+
+            return {
+                "frames": np.array(frames),
+                "audio_path": audio_final,
+                "subtitle_path": sub_final
+            }
+
     except subprocess.CalledProcessError as e:
         logger.error(f"yt-dlp 실행 중 오류 발생: {e}")
         return None
     except Exception as e:
         logger.error(f"YouTube 다운로드 중 오류 발생: {e}")
         return None
+
 
 def convert_youtube_url(url: str) -> Optional[str]:
     """
@@ -133,6 +129,7 @@ def extract_frames_from_video(video_data: np.ndarray, interval_sec: float = 1.5)
     Returns:
         List[Dict[str, Any]]: 추출된 프레임 정보 목록
     """
+
     if video_data is None or len(video_data) == 0:
         logger.error("유효한 비디오 데이터가 없습니다.")
         return []
@@ -214,105 +211,6 @@ def extract_frames_from_video(video_data: np.ndarray, interval_sec: float = 1.5)
         logger.error(f"프레임 추출 중 오류 발생: {e}")
         return []
 
-def extract_frames_from_file(file_path: str, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-    """
-    비디오 파일에서 정해진 간격으로 프레임을 추출하여 NumPy 배열로 반환합니다.
-    
-    Args:
-        file_path (str): 비디오 파일 경로
-        interval_sec (float): 프레임 추출 간격(초)
-    
-    Returns:
-        List[Dict[str, Any]]: 추출된 프레임 정보 목록, 각 항목은 NumPy 배열 이미지 포함
-    """
-    try:
-        # 비디오 파일 열기
-        cap = cv2.VideoCapture(file_path)
-        if not cap.isOpened():
-            logger.error(f"비디오 파일을 열 수 없음: {file_path}")
-            return []
-        
-        # 비디오 속성 가져오기
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = total_frames / fps
-        
-        logger.info(f"비디오 정보: {duration:.2f}초, {fps:.2f} FPS, 총 {total_frames}프레임")
-        
-        # 프레임 추출 간격 계산 (프레임 단위)
-        frame_interval = int(fps * interval_sec)
-        if frame_interval <= 0:
-            frame_interval = 1  # 최소 1 프레임 간격
-            
-        expected_frames = total_frames // frame_interval + 1
-        
-        logger.info(f"프레임 추출 간격: {interval_sec}초 ({frame_interval}프레임마다), 예상 추출 프레임: 약 {expected_frames}개")
-        
-        # 프레임 추출
-        frame_count = 0
-        saved_count = 0
-        frames_info = []
-        
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            # 지정된 간격마다 프레임 저장
-            if frame_count % frame_interval == 0:
-                # 프레임 정보 저장 (NumPy 배열 포함)
-                frames_info.append({
-                    "frame_number": frame_count,
-                    "timestamp": frame_count / fps,
-                    "image": frame  # NumPy 배열 직접 저장
-                })
-                
-                saved_count += 1
-                
-                # 진행 상황 로깅
-                if saved_count % 10 == 0 or saved_count == expected_frames:
-                    logger.info(f"프레임 추출: {saved_count}/{expected_frames} ({saved_count/expected_frames*100:.1f}%)")
-            
-            frame_count += 1
-        
-        # 비디오 파일 닫기
-        cap.release()
-        
-        logger.info(f"프레임 추출 완료: 총 {saved_count}개 프레임 추출됨")
-        return frames_info
-    
-    except Exception as e:
-        logger.error(f"프레임 추출 중 오류 발생: {e}")
-        return []
-
-def extract_frames_from_buffer(video_buffer: bytes, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-    """
-    비디오 바이트 버퍼에서 정해진 간격으로 프레임을 추출하여 NumPy 배열로 반환합니다.
-    
-    Args:
-        video_buffer (bytes): 비디오 데이터 바이트 버퍼
-        interval_sec (float): 프레임 추출 간격(초)
-    
-    Returns:
-        List[Dict[str, Any]]: 추출된 프레임 정보 목록, 각 항목은 NumPy 배열 이미지 포함
-    """
-    try:
-        # 임시 파일에 비디오 데이터 저장
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
-            temp_file.write(video_buffer)
-            temp_path = temp_file.name
-        
-        try:
-            # 프레임 추출
-            return extract_frames_from_file(temp_path, interval_sec)
-        finally:
-            # 임시 파일 삭제
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-    
-    except Exception as e:
-        logger.error(f"버퍼에서 프레임 추출 중 오류 발생: {e}")
-        return []
 
 def preprocess_image_for_ocr(image: np.ndarray) -> np.ndarray:
     """
