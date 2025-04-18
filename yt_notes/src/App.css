@@ -1,11 +1,44 @@
+@font-face {
+    font-family: 'SUIT-Regular';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
 * {
     box-sizing: border-box;
-    font-family: "DM Sans", sans-serif;
+    font-family: 'SUIT-Regular';
+    line-height: 1.6;
 }
 
 .App {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    background-color: #9ECBF0;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed; 
+    top: 0rem;
+    left: 0.4rem;
+}
+
+.logo-container .logo {
+    width: 3rem;
+    height: 5rem;
+    object-fit: contain;
+}
+
+.logo-container .logo-text {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #000;
+    margin-left: 0.5rem;
 }

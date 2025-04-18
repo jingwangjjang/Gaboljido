@@ -1,41 +1,95 @@
+.search-bar-title {
+    font-size: 2.7rem;
+    margin-bottom: 2rem;
+}
+
+.search-bar-title p {
+    display: inline;
+    background: linear-gradient(90deg, #1680c2, #9370DB);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; 
+}
+
 .search-bar {
+    width: 50vw;
+    height: 9rem;
+}
+
+.messageBox {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    top: 0;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    border: 2.5px solid gray;
+    box-shadow: 4px 4px 10px rgb(118, 118, 118);
+}
+/* .messageBox:focus-within {
+    border: 1px solid #2e77b3;;
+} */
+
+.addButton {
+    cursor: pointer;
+    width: fit-content;
+    height: fit-content;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f1f1f1;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin-bottom: 32px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
 }
-
-.search-bar input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 16px;
-    padding: 4px 8px;
+.addButton svg {
+    height: 18px;
+}
+.addButton svg path {
+    transition: all 0.3s;
+}
+.addButton svg circle {
+    transition: all 0.3s;
+}
+.addButton:hover svg path {
+    stroke: black;
+}
+.addButton:hover svg circle {
+    stroke: black;
+    fill: white;
+}
+.messageInput {
+    width: 200px;
+    height: 5rem;
     background-color: transparent;
-}
-
-.search-bar button {
-    background-color: #007bff;
-    color: white;
+    outline: none;
     border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
+    padding-left: 10px;
+    color: black;
+}
+/* .messageInput:focus ~ .sendButton svg path,
+.messageInput:valid ~ .sendButton svg path {
+    fill: #3c3c3c;
+    stroke: white;
+} */
+.sendButton {
+    width: fit-content;
+    height: fit-content;
+    background-color: transparent;
+    outline: none;
+    border: none;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s;
 }
-
-.search-bar button:hover {
-    background-color: #0056b3;
+.sendButton svg {
+    height: 18px;
+    transition: all 0.3s;
 }
-
+.sendButton svg path {
+    transition: all 0.3s;
+}
+.sendButton:hover svg path {
+    fill: white;
+    stroke: black;
+}
+  
 .video-list {
     width: 100%;
     display: flex;
