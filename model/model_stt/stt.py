@@ -24,15 +24,9 @@ def extract_video_id(url):
 
 def get_youtube_caption(video_id, language='ko'):
     try:
-        
         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[language, 'en'])
-        lines = []
-        for entry in transcript:
-            start = format_timestamp(entry['start'])
-            end = format_timestamp(entry['start'] + entry['duration'])
-            text = entry['text'].strip()
-            lines.append(f"[{start} - {end}] {text}")
-        return "\n".join(lines)
+        texts = [entry['text'].strip() for entry in transcript]
+        return " ".join(texts)
     except Exception as e:
         print("❌ 자막 불러오기 실패:", str(e))
         return None
@@ -105,14 +99,9 @@ def transcribe_with_groq(audio_bytes):
             response_format="verbose_json",
             language="ko"
         )
-        lines = []
         segments = transcription.model_dump().get("segments", [])
-        for segment in segments:
-            start = format_timestamp(segment['start'])
-            end = format_timestamp(segment['end'])
-            text = segment['text'].strip()
-            lines.append(f"[{start} - {end}] {text}")
-        return "\n".join(lines)
+        texts = [segment['text'].strip() for segment in segments]
+        return " ".join(texts)
     
     except Exception as e:
         print(f"❌ Groq 전사 실패: {str(e)}")
@@ -125,7 +114,7 @@ def get_subtitles_or_transcribe(url, language='ko'):
     captions = get_youtube_caption(video_id, language)
     if captions: # print("✅ 자체 자막이 존재합니다.")
         
-        return captions
+        return captions.split()
 
     else: # print("❌ 자체 자막이 없다면, Groq Whisper로 음성 인식 중...")
         
@@ -138,7 +127,7 @@ def get_subtitles_or_transcribe(url, language='ko'):
 
         transcription = transcribe_with_groq(audio_bytes)
 
-        return transcription
+        return transcription.split()
 
 def save_transcription(text, output_file="transcription.txt"):
     if text:
@@ -148,4 +137,5 @@ def save_transcription(text, output_file="transcription.txt"):
     else:
         print("❌ 저장할 텍스트가 없습니다.")
 
-## get_subtitles_or_transcribe(url)이 시작 함수로 꼭 필요해요!!!
+
+# main: get_subtitles_or_transcribe(url, language='ko')
