@@ -5,12 +5,6 @@ import numpy as np
 import pandas as pd
 import psycopg2
 from sqlalchemy import create_engine
-from rapidfuzz import fuzz
-from sklearn.metrics.pairwise import cosine_similarity
-from jamo import h2j
-from Levenshtein import ratio
-from sentence_transformers import SentenceTransformer
-from rapidfuzz.distance import Levenshtein as RF_Levenshtein
 from groq import Groq
 from dotenv import load_dotenv
 
