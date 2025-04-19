@@ -1,4 +1,8 @@
 from ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
+from yolov5.utils.general import non_max_suppression, scale_boxes
+from yolov5.utils.augmentations import letterbox
+from yolov5.models.common import DetectMultiBackend
+from yolov5.utils.torch_utils import select_device
 import os
 import torch
 import numpy as np
@@ -23,7 +27,7 @@ class YOLOSubtitleDetector:
     """
     YOLO 모델을 사용한 자막 검출 및 OCR 처리를 수행하는 클래스
     """
-    def __init__(self, model_path: str, ocr_secret_key: str, ocr_invoke_url: str, conf_threshold: float = 0.3):
+    def __init__(self, model_path: str, ocr_secret_key: str, ocr_invoke_url: str, conf_threshold: float = 0.1):
         """
         초기화 함수
         
@@ -33,75 +37,88 @@ class YOLOSubtitleDetector:
             ocr_invoke_url (str): Clova OCR API URL
             conf_threshold (float): 검출 신뢰도 임계값으로 줄이면 더 많이 잡는데 오탐이 많아짐 현재 0.3
         """
-        self.model_path = model_path
-        self.ocr_secret_key = os.getenv("CLOVA_OCR_SECRET_KEY")
-        self.ocr_invoke_url = os.getenv("CLOVA_OCR_API_URL")
+        self.model_path = "gaboljido_yolo.torchscript"
+        self.ocr_secret_key = os.getenv("CLOVA_OCR_SECRET_KEY") or ocr_secret_key
+        self.ocr_invoke_url = os.getenv("CLOVA_OCR_API_URL") or ocr_invoke_url
         self.conf_threshold = conf_threshold
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # ✅ device 저장
         self.model = self._load_model()
-        
-    def _load_model(self): 
+
+    def _load_model(self):
         """YOLO 모델 로드"""
         try:
             logger.info(f"YOLO 모델 로드 중: {self.model_path}")
-            # GPU 메모리 정리
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            
-            # 모델 로드
-            model = torch.hub.load('ultralytics/yolov5', 'custom', path=self.model_path, force_reload=False)
-            model.conf = self.conf_threshold
-            
-            # GPU 사용 설정
-            if torch.cuda.is_available():
-                model.cuda()
-                logger.info("CUDA 사용 가능: GPU로 모델을 로드했습니다.")
-            else:
-                logger.info("CUDA 사용 불가: CPU로 모델을 로드했습니다.")
-            
+
+            # TorchScript 모델 로드
+            model = DetectMultiBackend(self.model_path, device=self.device)
+            model.eval()
+
+            logger.info(f"{self.device.type.upper()}에서 모델 로드 완료")
             return model
-        
+
         except Exception as e:
             logger.error(f"모델 로드 중 오류 발생: {e}")
             raise RuntimeError(f"모델 로드 실패: {e}")
-    
-
-    def detect_subtitle_crops(self, image: np.ndarray) -> list:
-        """
-        YOLO 모델을 이용하여 단일 이미지에서 자막 영역 검출 후, 해당 영역의 크롭 이미지를 반환
-
-        Args:
-            model: YOLO 모델 객체
-            image (np.ndarray): 입력 이미지 (BGR 형태), extract_frames_from_video에서 numpy 배열로 변환된 이미지들들
-
-        Returns:
-            List[np.ndarray]: 검출된 각 자막 영역에 대한 크롭 이미지 리스트
-        """
-        try:
-            # NumPy 배열을 임시 이미지 파일로 저장
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
-                cv2.imwrite(temp_file.name, image)
-                temp_path = temp_file.name
-
-            try:
-                results = self.model(temp_path)
-                boxes = results.xyxy[0].cpu().numpy()
-
-                crops = []
-                for box in boxes:
-                    x1, y1, x2, y2 = map(int, box[:4])
-                    crop = image[y1:y2, x1:x2]
-                    crops.append(crop)
-                return crops
-
-            finally:
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-
-        except Exception as e:
-            #print(f"[ERROR] 자막 크롭 중 오류 발생: {e}")
-            return []
         
-    def _call_clova_ocr_image(self, image_np_array, api_url, secret_key):
+    def detect_subtitle_crops_single(self, images: List[np.ndarray]) -> List[List[np.ndarray]]:
+        all_crops = []
+
+        for idx, image in enumerate(images):
+            try:
+                # 전처리
+                if image.ndim == 2:
+                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+                elif image.shape[2] == 4:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+                else:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+                orig_h, orig_w = image.shape[:2]
+                resized = cv2.resize(image, (640, 640))
+                tensor = torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0) / 255.0
+                tensor = tensor.to(self.device)
+
+                # 추론
+                with torch.no_grad():
+                    preds = self.model(tensor)
+                    if isinstance(preds, (list, tuple)):
+                        preds = preds[0]
+                    if preds.ndim == 2:
+                        preds = preds.unsqueeze(0)
+
+                # NMS
+                dets = non_max_suppression(preds, conf_thres=self.conf_threshold, iou_thres=0.45)[0]
+
+                # 박스 복원 및 크롭
+                crops = []
+                if dets is not None and len(dets):
+                    for *xyxy, conf, cls in dets:
+                        x1, y1, x2, y2 = [int(v.item()) for v in xyxy]
+
+                        # 원본 해상도에 맞게 스케일 조정
+                        scale_x = orig_w / 640
+                        scale_y = orig_h / 640
+                        x1 = int(x1 * scale_x)
+                        y1 = int(y1 * scale_y)
+                        x2 = int(x2 * scale_x)
+                        y2 = int(y2 * scale_y)
+
+                        crop = image[y1:y2, x1:x2]
+                        crops.append(crop)
+
+                print(f"[DEBUG] Frame {idx+1}/{len(images)}: 검출된 크롭 수 = {len(crops)}")
+                all_crops.append(crops)
+
+            except Exception as e:
+                print(f"[ERROR] Frame {idx+1}: {e}")
+                all_crops.append([])
+
+        return all_crops
+
+        
+    def _call_clova_ocr_image(self, image_np_array, ocr_invoke_url, ocr_secret_key):
         """
         YOLO 모델을 이용하여 단일 이미지에서 자막 영역 검출 후, 해당 영역의 크롭 이미지를 반환
 
@@ -132,15 +149,15 @@ class YOLOSubtitleDetector:
         payload = {'message': json.dumps(request_json).encode('UTF-8')}
         files = [('file', ('crop.jpg', image_bytes, 'image/jpeg'))]
         headers = {
-            'X-OCR-SECRET': secret_key
+            'X-OCR-SECRET': ocr_secret_key
         }
 
         try:
-            response = requests.post(api_url, headers=headers, data=payload, files=files, timeout=10)
+            response = requests.post(ocr_invoke_url, headers=headers, data=payload, files=files, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            #print(f"❌ CLOVA OCR 요청 실패: {e}")
+            print(f"❌ CLOVA OCR 요청 실패: {e}")
             return {"images": [{"fields": []}]}  # 기본 빈 응답
     
     
@@ -179,6 +196,7 @@ class YOLOSubtitleDetector:
             List[str]: 각 이미지에서 추출된 텍스트
         """
         texts = []
+        crops = [crop for batch in crops for crop in batch]
         for crop in crops:
             if crop.size == 0 or crop.shape[0] < 10 or crop.shape[1] < 10:
                 texts.append("")
@@ -187,23 +205,24 @@ class YOLOSubtitleDetector:
             preprocessed = preprocess_image_for_ocr(crop)
 
             # 클로바 OCR 바로 호출 (NumPy 배열 사용) call_clova_ocr_image는 인식까지만 하고 _extract_text_from_ocr_result는 텍스트 추출출
-            ocr_result = self._call_clova_ocr_image(preprocessed, self.api_url, self.secret_key)
+            ocr_result = self._call_clova_ocr_image(preprocessed, self.ocr_invoke_url, self.ocr_secret_key)
             text = self._extract_text_from_ocr_result(ocr_result)
             texts.append(text)
 
         return texts
     
     def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5) -> List[str]:
-        from ocr_utils import download_youtube_video, extract_frames_from_video
 
         # 1. 유튜브 영상 다운로드
         video_data = download_youtube_video(youtube_url)
         if video_data is None:
             logger.error("❌ YouTube 영상 다운로드 실패")
             return []
+        print("youtube download 완료료")
 
         # 2. 프레임 추출
-        frames_info = extract_frames_from_video(video_data["frames"], interval_sec)
+        frames_info = extract_frames_from_video(video_data["frames"], interval_sec=1.5)
+        print(f"🖼️ 총 {len(frames_info)}개 프레임 추출 완료")
 
         # 3. 자막 검출 + OCR
         raw_texts = []
@@ -212,7 +231,8 @@ class YOLOSubtitleDetector:
             if image is None:
                 continue
 
-            crops = self.detect_subtitle_crops(image)
+            crops = self.detect_subtitle_crops_single([image])
+            print(f"[DEBUG] Frame {i + 1}/{len(frames_info)}: 검출된 크롭 수 = {len(crops)}")
             if len(crops) == 0:
                 continue
 
@@ -222,6 +242,7 @@ class YOLOSubtitleDetector:
                     continue
                 logger.info(f"[Frame {i}] Crop {crop_idx}: '{text.strip()}'")
                 raw_texts.append(text.strip())
+        print("ocr 추출 완료료")
 
         # ✅ 중복 제거
         deduped_texts = []
@@ -231,6 +252,8 @@ class YOLOSubtitleDetector:
                 if text not in seen:
                     seen.add(text)
                     deduped_texts.append(text)
+        
+        print(f"최종 반환 text:{deduped_texts}")
 
         logger.info(f"✅ 파이프라인 완료: {len(deduped_texts)}개 자막 검출됨")
         return deduped_texts

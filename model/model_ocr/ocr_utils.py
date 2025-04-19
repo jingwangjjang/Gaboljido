@@ -5,6 +5,7 @@ import subprocess
 import logging
 import tempfile
 import numpy as np
+import torch
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger("subtitle-detector.utils")
@@ -119,97 +120,73 @@ def convert_youtube_url(url: str) -> Optional[str]:
     return None
 
 def extract_frames_from_video(video_data: np.ndarray, interval_sec: float = 1.5) -> List[Dict[str, Any]]:
-    """
-    비디오 NumPy 배열에서 정해진 간격으로 프레임을 추출합니다.
-    
-    Args:
-        video_data (np.ndarray): 비디오 데이터 NumPy 배열 (프레임, 높이, 너비, 채널)
-        interval_sec (float): 프레임 추출 간격(초)
-    
-    Returns:
-        List[Dict[str, Any]]: 추출된 프레임 정보 목록
-    """
+    print(f"[DEBUG] video_data type: {type(video_data)}")
+    print(f"[DEBUG] video_data shape: {getattr(video_data, 'shape', 'N/A')}")
 
     if video_data is None or len(video_data) == 0:
         logger.error("유효한 비디오 데이터가 없습니다.")
         return []
-    
+
     try:
-        # 임시 파일에 비디오 저장 (OpenCV에서 fps 정보를 얻기 위함)
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
             temp_path = temp_file.name
-        
+
         try:
-            # 비디오 쓰기 객체 생성
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             height, width = video_data[0].shape[:2]
-            fps = 30.0  # 기본값 (정확한 fps 정보가 없으므로)
-            
+            fps = 30.0  # 기본값 (실제 확인은 아래에서)
+
             out = cv2.VideoWriter(temp_path, fourcc, fps, (width, height))
-            
-            # 모든 프레임 쓰기
             for frame in video_data:
                 out.write(frame)
-            
             out.release()
-            
-            # 비디오 속성 가져오기
+
             cap = cv2.VideoCapture(temp_path)
             if not cap.isOpened():
-                logger.error("임시 비디오 파일을 열 수 없습니다.")
-                # fps 정보를 얻을 수 없으므로 기본값 사용
-                fps = 30.0
+                logger.warning("임시 비디오 파일을 열 수 없습니다. 기본 FPS 사용")
             else:
                 fps = cap.get(cv2.CAP_PROP_FPS)
                 cap.release()
-            
-            # 총 프레임 수
+
             total_frames = len(video_data)
-            duration = total_frames / fps
-            
-            logger.info(f"비디오 정보: {duration:.2f}초, {fps:.2f} FPS, 총 {total_frames}프레임")
-            
-            # 프레임 추출 간격 계산 (프레임 단위)
             frame_interval = int(fps * interval_sec)
             if frame_interval <= 0:
-                frame_interval = 1  # 최소 1 프레임 간격
-                
+                frame_interval = 1
+
             expected_frames = total_frames // frame_interval + 1
-            
-            logger.info(f"프레임 추출 간격: {interval_sec}초 ({frame_interval}프레임마다), 예상 추출 프레임: 약 {expected_frames}개")
-            
-            # 프레임 추출
+            logger.info(f"프레임 추출 간격: {interval_sec:.1f}초 ({frame_interval}프레임마다)")
+            logger.info(f"비디오 정보: {total_frames}프레임, 약 {expected_frames}개 프레임 추출 예상")
+
             frames_info = []
-            
             for frame_idx in range(0, total_frames, frame_interval):
                 if frame_idx >= total_frames:
                     break
-                    
-                # 시간 계산
+
                 timestamp = frame_idx / fps
-                
-                # 프레임 정보 저장
+                frame_np = video_data[frame_idx]
+                frame_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+
                 frames_info.append({
                     "frame_number": frame_idx,
                     "timestamp": timestamp,
-                    "image": video_data[frame_idx]
+                    "image": frame_rgb
                 })
-                
-                # 진행 상황 로깅
-                if len(frames_info) % 10 == 0 or len(frames_info) == expected_frames:
-                    logger.info(f"프레임 추출: {len(frames_info)}/{expected_frames} ({len(frames_info)/expected_frames*100:.1f}%)")
-            
-            logger.info(f"프레임 추출 완료: 총 {len(frames_info)}개 프레임 추출됨")
+
+                if len(frames_info) % 10 == 0:
+                    logger.info(f"프레임 추출 중... 현재 {len(frames_info)}개")
+
+            logger.info(f"프레임 추출 완료: 총 {len(frames_info)}개 프레임")
             return frames_info
-            
+
         finally:
-            # 임시 파일 삭제
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-    
+
     except Exception as e:
         logger.error(f"프레임 추출 중 오류 발생: {e}")
         return []
+
+
 
 
 def preprocess_image_for_ocr(image: np.ndarray) -> np.ndarray:
