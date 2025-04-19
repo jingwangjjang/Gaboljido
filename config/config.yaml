@@ -1,0 +1,13 @@
+vectordb:
+  host: 34.64.250.147
+  port: 5432
+  user: postgres
+  password: google9009
+  name: vectordb
+
+  sqldb:
+    host: 34.64.58.231
+    port: 5432
+    user: postgres
+    password: gabolgido
+    name: postgres
