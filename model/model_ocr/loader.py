@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 model_path = 
 conf_threshold = 0.3 
 '''
+
 load_dotenv()
 logger = logging.getLogger("subtitle-detector.loader")
 

@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from typing import List, Dict, Any, Optional
 
+
 logger = logging.getLogger("subtitle-detector.utils")
 
 def download_youtube_video(url: str) -> Optional[Dict[str, Any]]:
