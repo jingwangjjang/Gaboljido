@@ -1,4 +1,5 @@
-from ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
+from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
+
 from yolov5.utils.general import non_max_suppression, scale_boxes
 from yolov5.utils.augmentations import letterbox
 from yolov5.models.common import DetectMultiBackend
