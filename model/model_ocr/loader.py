@@ -213,7 +213,7 @@ class YOLOSubtitleDetector:
 
         return texts
     
-    def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5) -> List[str]:
+    def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5, region_code: Optional[int] = None) -> List[str]:
 
         # 1. 유튜브 영상 다운로드
         video_data = download_youtube_video(youtube_url)
