@@ -1,10 +1,8 @@
-from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
 
-from yolov5.utils.general import non_max_suppression, scale_boxes
-from yolov5.utils.augmentations import letterbox
-from yolov5.models.common import DetectMultiBackend
-from yolov5.utils.torch_utils import select_device
+import sys
 import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "yolov5"))
+
 import torch
 import numpy as np
 import cv2
@@ -16,6 +14,15 @@ import json
 import tempfile
 from typing import List, Dict, Any, Tuple, Optional
 from dotenv import load_dotenv 
+
+from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
+
+from utils.general import non_max_suppression, scale_boxes
+from utils.torch_utils import select_device
+from models.common import DetectMultiBackend
+from utils import TryExcept, emojis
+
+
 '''
 참고
 model_path = 
@@ -39,7 +46,8 @@ class YOLOSubtitleDetector:
             ocr_invoke_url (str): Clova OCR API URL
             conf_threshold (float): 검출 신뢰도 임계값으로 줄이면 더 많이 잡는데 오탐이 많아짐 현재 0.3
         """
-        self.model_path = "gaboljido_yolo.torchscript"
+        #self.model_path = "gaboljido_yolo.torchscript"
+        self.model_path = model_path
         self.ocr_secret_key = os.getenv("CLOVA_OCR_SECRET_KEY") or ocr_secret_key
         self.ocr_invoke_url = os.getenv("CLOVA_OCR_API_URL") or ocr_invoke_url
         self.conf_threshold = conf_threshold

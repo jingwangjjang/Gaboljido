@@ -12,18 +12,15 @@ app = FastAPI()
 
 class AnalyzeRequest(BaseModel):
     url: str
-    video_id: int
-    title: str
+
+    class Config:
+        extra = "ignore"  # ✅ 추가 필드 무시
 
 @app.post("/start-analysis/")
 def start_analysis(req: AnalyzeRequest):
-    # 전체 모델 파이프라인 실행
     result = run_pipeline(req.url)
 
-    # Django 백엔드로 결과 전송
     payload = {
-        "video_id": req.video_id,
-        "title": req.title,
         "url": req.url,
         "result": result
     }

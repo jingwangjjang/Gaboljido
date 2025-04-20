@@ -1,4 +1,4 @@
-from model.model_rag_llm.utils import summarize_reviews  # 실제 요약 함수명 확인 필요
+from model.model_rag_llm.utils import generate_store_summaries  
 
-def run_rag(ner_result: dict) -> list:
-    return summarize_reviews(ner_result)
+def run_rag(ner_result: dict) -> dict:
+    return generate_store_summaries(ner_result)

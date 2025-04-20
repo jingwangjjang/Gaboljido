@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 
 # 환경 설정
 load_dotenv()
+
+# 환경 설정
+load_dotenv()
 vdb_user = os.getenv("VDB_USER")
 vdb_password = os.getenv("VDB_PASSWORD")
 vdb_host = os.getenv("VDB_HOST")
@@ -25,6 +28,9 @@ def vector_db_conn():
         user=vdb_user,
         password=vdb_password
     )
+
+
+
 
 # 문장 자동 분리 유틸 함수
 def split_reviews(response_text):
