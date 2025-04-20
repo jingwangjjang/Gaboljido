@@ -5,6 +5,7 @@ from yolov5.models.common import DetectMultiBackend
 from yolov5.utils.torch_utils import select_device
 import os
 import torch
+import re
 import numpy as np
 import cv2
 import logging
@@ -250,12 +251,14 @@ class YOLOSubtitleDetector:
         if raw_texts:
             seen = set()
             for text in raw_texts:
-                if text not in seen:
-                    seen.add(text)
-                    deduped_texts.append(text)
-        
-        print(f"최종 반환 text:{deduped_texts}")
+                # 한글만 남기고 나머지 제거
+                korean_only = re.sub(r'[^가-힣\s]', '', text)
+                korean_only = korean_only.strip()
+                if korean_only and korean_only not in seen:
+                    seen.add(korean_only)
+                    deduped_texts.append(korean_only)
 
+        #print(f"최종 반환 text:{deduped_texts}")
         logger.info(f"✅ 파이프라인 완료: {len(deduped_texts)}개 자막 검출됨")
         return deduped_texts
 
