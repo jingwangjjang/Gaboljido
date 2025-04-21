@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import ast
 import numpy as np
 import pandas as pd
@@ -141,7 +142,9 @@ def generate_store_summaries(stt_results: dict):
         cur.close()
         conn.close()
 
+        # 최종 결과 로그 확인
         print("\n🎉 [전체 완료] 모든 매장 요약 작업이 성공적으로 완료되었습니다.")
+        print(f"\n🧾 [요약 결과 데이터]:\n{json.dumps(summaries, ensure_ascii=False, indent=2)}")  # ✅ 결과 로그 출력
         return {
             "status": "success",
             "code": 200,
@@ -160,15 +163,15 @@ def generate_store_summaries(stt_results: dict):
             "data": []
         }
 
-# # 예시 실행
-# if __name__ == "__main__":
-#     stt_input = {
-#         '마리우네': [3, '마리오네', 64],
-#         '성덕': [22, '강별 성수', 62],
-#         '고기질이': [82, '고깃바', 62],
-#         '레츠잇칙힌': [1, '레츠잇치킨 성수', 69],
-#         '성수': [2, '성수노루', 85]
-#     }
+	# # 예시 실행
+	# if __name__ == "__main__":
+	#     stt_input = {
+	#         '마리우네': [3, '마리오네', 64],
+	#         '성덕': [22, '강별 성수', 62],
+	#         '고기질이': [82, '고깃바', 62],
+	#         '레츠잇칙힌': [1, '레츠잇치킨 성수', 69],
+	#         '성수': [2, '성수노루', 85]
+	#     }
 
-#     result = generate_store_summaries(stt_input)
-#     print(result)
+    result = generate_store_summaries(stt_input)
+    print(result)
