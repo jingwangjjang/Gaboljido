@@ -20,7 +20,7 @@ const GoogleMapComponent = (props) => {
 
   return (
     <>
-      <div className="map-wrapper" style={{ display: "none" }}>
+      <div className="map-wrapper">
         <div className="map-container">
           <Map
             google={props.google}

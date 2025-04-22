@@ -1,24 +1,33 @@
+.search-bar-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 .search-bar-title {
     font-size: 2.7rem;
     margin-bottom: 2rem;
 }
-
 .search-bar-title p {
     display: inline;
     background: linear-gradient(90deg, #1680c2, #9370DB);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent; 
 }
-
 .search-bar {
     width: 50vw;
-    height: 9rem;
+    height: 20vh;
 }
 
 .messageBox {
     width: 100%;
     height: 100%;
     display: flex;
+    flex-direction: column;
     top: 0;
     background-color: white;
     padding: 1rem;
@@ -26,10 +35,38 @@
     border: 2.5px solid gray;
     box-shadow: 4px 4px 10px rgb(118, 118, 118);
 }
-/* .messageBox:focus-within {
-    border: 1px solid #2e77b3;;
-} */
-
+.inputs {
+    display: flex;
+    flex-direction: row;
+    height: 10rem;
+}
+.messageInput {
+    width: 85%;
+    height: 100%;
+    background-color: transparent;
+    outline: none;
+    border: none;
+    color: black;
+    font-size: 1rem;
+    resize: none;
+}
+.dropdown {
+    width: 15%;
+    height: 40%;
+    border: none;
+    &, &::picker(select) {
+        appearance: base-select;    
+    }
+    font-size: 0.9rem;
+}
+.buttons {
+    width: 100%;
+    height: 4rem;
+    padding: 0 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .addButton {
     cursor: pointer;
     width: fit-content;
@@ -55,20 +92,6 @@
     stroke: black;
     fill: white;
 }
-.messageInput {
-    width: 200px;
-    height: 5rem;
-    background-color: transparent;
-    outline: none;
-    border: none;
-    padding-left: 10px;
-    color: black;
-}
-/* .messageInput:focus ~ .sendButton svg path,
-.messageInput:valid ~ .sendButton svg path {
-    fill: #3c3c3c;
-    stroke: white;
-} */
 .sendButton {
     width: fit-content;
     height: fit-content;
@@ -88,30 +111,4 @@
 .sendButton:hover svg path {
     fill: white;
     stroke: black;
-}
-  
-.video-list {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
-    justify-content: center;
-}
-
-.video-list .video-wrapper {
-    flex: 1 1 auto;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-    transition: flex 0.3s ease;
-    border-radius: 12px;
-}
-
-.video-list iframe{
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
 }

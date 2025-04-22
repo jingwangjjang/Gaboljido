@@ -7,6 +7,7 @@
 	--slide-duration: calc(400ms * 100 / var(--animation-speed));
 	--slide-delay: calc(450ms * 100 / var(--animation-speed));
 	--circle-duration: calc(900ms * 100 / var(--animation-speed));
+	overflow-y: auto;
 }
 
 .list-container *,
