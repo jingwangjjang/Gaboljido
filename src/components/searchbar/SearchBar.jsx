@@ -87,7 +87,7 @@ const SearchBar = () => {
         region_code: 26, // temp
       };
       try {
-        const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
+        const response = await fetch("http://127.0.0.1:8000/analyze-url/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
