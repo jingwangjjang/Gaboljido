@@ -8,12 +8,13 @@ const SearchBar = () => {
   const [query, setQuery] = useState("");
   const [videos, setVideos] = useState([]);
   const [links, setLinks] = useState([]);
+  const [idTitles, setidTitles] = useState([]);
 
   const extractVideoId = (url) => {
     try {
       const trimmedUrl = url.trim(); // Remove the space
       if (!trimmedUrl) {
-        return null; // Hnadle empty URL case
+        return null; // Handle empty URL case
       }
       const urlObj = new URL(trimmedUrl);
       if (urlObj.hostname === "www.youtube.com") {
@@ -53,19 +54,20 @@ const SearchBar = () => {
   };
 
   const handleAddLink = async () => {
-    if (links.length > 4) {
+    if (idTitles.length > 4) {
       alert("You can only add up to 5 links.");
       setQuery("");
       return;
     }
     const videoId = extractVideoId(query);
-    if (links.some((link) => link.id === videoId)) {
+    if (idTitles.some((idTitle) => idTitle.id === videoId)) {
       alert("This link has already been added.");
       return;
     }
     if (videoId) {
       const title = await fetchVideoTitle(videoId);
-      setLinks((prevLinks) => [...prevLinks, { id: videoId, title }]);
+      setidTitles((prevIdTitles) => [...prevIdTitles, { id: videoId, title }]);
+      setLinks(query);
       setQuery("");
     } else {
       alert("Please enter a valid YouTube link.");
@@ -73,9 +75,39 @@ const SearchBar = () => {
     }
   };
 
-  const handleSearch = () => {
-    if (links.length > 0) {
-      setVideos(links);
+  const handleSearch = async () => {
+    if (idTitles.length > 0) {
+      const selectedOption = document.querySelector(".dropdown").value; // Selected option value
+      if (selectedOption === "default") {
+        alert("Please select a region.");
+        return;
+      }
+      const payload = {
+        url: links,
+        region_code: 26, // temp
+      };
+      try {
+        const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Response from API:", data);
+          alert("API request successful!");
+        } else {
+          console.error("API request failed:", response.statusText);
+          alert("Failed to send data to the API.");
+        }
+      } catch (error) {
+        console.error("Error during API request:", error);
+        alert("An error occurred while sending the request.");
+      }
+      setVideos(idTitles);
+      setidTitles([]);
       setLinks([]);
       setQuery("");
     } else {
@@ -169,7 +201,7 @@ const SearchBar = () => {
             </div>
           </div>
         </form>
-        <LinksContainer links={links} />
+        <LinksContainer idTitles={idTitles} />
         <VideosContainer videos={videos} />
         {videos.length > 0 && <GoogleMapComponent />}
       </div>
