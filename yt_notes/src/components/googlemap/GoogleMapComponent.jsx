@@ -53,6 +53,6 @@ const GoogleMapComponent = (props) => {
 };
 
 export default GoogleApiWrapper({
-  apiKey: "AIzaSyBchX_q-BfWjKnLM0oj6Nt1QR3gafQESrg",
+  apiKey: `${process.env.REACT_APP_GOOGLE_API_KEY}`,
   loadingElement: <div>Loading map...</div>,
 })(GoogleMapComponent);

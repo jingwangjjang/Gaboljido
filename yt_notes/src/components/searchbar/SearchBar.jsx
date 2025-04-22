@@ -35,7 +35,7 @@ const SearchBar = () => {
   const fetchVideoTitle = async (videoId) => {
     try {
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=AIzaSyBchX_q-BfWjKnLM0oj6Nt1QR3gafQESrg`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
       );
       const data = await response.json();
       if (data.items && data.items.length > 0) {

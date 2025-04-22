@@ -24,12 +24,6 @@ h1 {
 	margin: 0;
 }
 
-/* html,
-body {
-	scroll-behavior: smooth;
-	scroll-padding-top: 1rem;
-} */
-
 .list-container > h1 {
 	font-size: var(--size-header);
 	margin-bottom: 1.25rem;
@@ -62,14 +56,14 @@ body {
 	opacity: 0.9;
 }
 
-.accordion:not(:target):hover {
+/* .accordion:not(:target):hover {
 	box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 .accordion:not(:target):active {
 	opacity: 1;
 	box-shadow: 0 4px 7px 0 rgba(0, 0, 0, 0.3);
-}
+} */
 
 .accordion,
 .content {
