@@ -143,7 +143,9 @@ def generate_store_summaries(stt_results: dict):
         # 최종 결과 로그 확인
         print("\n🎉 [전체 완료] 모든 매장 요약 작업이 성공적으로 완료되었습니다.")
         print(f"\n🧾 [요약 결과 데이터]:\n{json.dumps(summaries, ensure_ascii=False, indent=2)}")  # ✅ 결과 로그 출력
-
+ 
+    except:
+        print('generate 과정 에러 발생 ㅠㅠ')
 # 문장 자동 분리 유틸 함수
 def split_reviews(response_text):
     sentences = re.split(r'(?<=[.!?~])\s+', response_text.strip())
