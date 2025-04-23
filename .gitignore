@@ -176,3 +176,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 *.mp4
+ner_output/*.safetensors
