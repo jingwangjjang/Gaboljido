@@ -13,7 +13,7 @@ MODEL_SERVER_API = config("MODEL_SERVER_API")
 @require_POST
 def analyze_url(request):
     try:
-        body = json.loads(request.body)
+        body = json.loads(request.body.decode('utf-8'))
         url = body.get("url")
         region_code = body.get("region_code")
 
@@ -21,7 +21,6 @@ def analyze_url(request):
             return response(False, 400, "url은 필수입니다.")
         if region_code is None:
             return response(False, 400, "region_code는 필수입니다.")
-
         try:
             region_code = int(region_code)
         except ValueError:
@@ -44,68 +43,73 @@ def analyze_url(request):
             }
         )
 
-        # ✅ 기존 데이터가 있다면 바로 반환
+        # ✅ 기존 결과가 없으면 FastAPI 호출
+        if not VideoStoreSummary.objects.filter(video=video).exists():
+            payload = {
+                "url": url,
+                "video_id": video.id,
+                "region_code": region_code
+            }
+
+            try:
+                res = requests.post(MODEL_SERVER_API, json=payload)
+                res.raise_for_status()
+                result_data = json.loads(res.text)
+            except Exception as e:
+                return response(False, 500, f"FastAPI 요청 오류 또는 응답 파싱 실패: {str(e)}")
+
+            summaries = result_data.get("data", {}).get("data", [])
+            if not isinstance(summaries, list):
+                return response(False, 500, "모델 응답 형식이 잘못되었습니다.")
+
+            unique_store_ids = set()
+            for summary in summaries:
+                store_id = summary.get("store_id")
+                if not store_id or store_id in unique_store_ids:
+                    continue
+                unique_store_ids.add(store_id)
+
+                if VideoStoreSummary.objects.filter(video=video, store_id=store_id).exists():
+                    continue
+
+                store, _ = StoreReview.objects.get_or_create(
+                    id=store_id,
+                    defaults={
+                        "store_name": summary.get("store_name", "이름없음"),
+                        "category": "", "address": "",
+                        "visitor_reviews": 0, "blog_reviews": 0,
+                        "description_or_menu": ""
+                    }
+                )
+
+                VideoStoreSummary.objects.create(
+                    video=video,
+                    store=store,
+                    keyword=summary.get("keyword"),
+                    review_1=summary.get("review_1"),
+                    review_2=summary.get("review_2"),
+                    review_3=summary.get("review_3"),
+                )
+
+            video.processed = True
+            video.save()
+
+        # ✅ 무조건 저장된 데이터 다시 꺼내서 반환
         existing_summaries = VideoStoreSummary.objects.filter(video=video)
-        if existing_summaries.exists():
-            data = [{
-                "keyword": s.keyword,
-                "store_id": s.store.id,
-                "store_name": s.store.store_name,
-                "confidence": None,
-                "review_1": s.review_1,
-                "review_2": s.review_2,
-                "review_3": s.review_3,
-            } for s in existing_summaries]
-            return response(True, 200, "DB에서 분석 결과 반환", {"data": data})
+        data = [{
+            "keyword": s.keyword,
+            "store_id": s.store.id,
+            "store_name": s.store.store_name,
+            "confidence": None,
+            "review_1": s.review_1,
+            "review_2": s.review_2,
+            "review_3": s.review_3,
+        } for s in existing_summaries]
 
-        # ✅ FastAPI로 분석 요청
-        payload = {
-            "url": url,
-            "video_id": video.id,
-            "region_code": region_code
-        }
+        return response(True, 200, "모델 분석 완료 및 DB 저장", data)
 
-        res = requests.post(MODEL_SERVER_API, json=payload)
-        res.raise_for_status()
-        result_data = res.json()
-        summaries = result_data.get("data", [])
-
-        # ✅ 저장 처리
-        unique_store_ids = set()
-        saved = []
-        for summary in summaries:
-            store_id = summary.get("store_id")
-            if not store_id or store_id in unique_store_ids:
-                continue
-            unique_store_ids.add(store_id)
-
-            store, _ = StoreReview.objects.get_or_create(
-                id=store_id,
-                defaults={"store_name": summary.get("store_name", "이름없음"),
-                          "category": "", "address": "", "visitor_reviews": 0,
-                          "blog_reviews": 0, "description_or_menu": ""}
-            )
-
-            VideoStoreSummary.objects.create(
-                video=video,
-                store=store,
-                keyword=summary.get("keyword"),
-                review_1=summary.get("review_1"),
-                review_2=summary.get("review_2"),
-                review_3=summary.get("review_3"),
-            )
-            saved.append(summary)
-
-        video.processed = True
-        video.save()
-
-        return response(True, 200, "모델 분석 완료 및 DB 저장", {"data": saved})
-
-    except requests.RequestException as e:
-        return response(False, 500, f"FastAPI 요청 오류: {str(e)}")
     except Exception as e:
         return response(False, 500, f"서버 오류: {str(e)}")
-
 
 @csrf_exempt
 @require_POST
