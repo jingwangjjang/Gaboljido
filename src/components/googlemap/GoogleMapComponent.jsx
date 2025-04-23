@@ -27,7 +27,7 @@ const GoogleMapComponent = ({ mapData }) => {
     if (isLoaded) {
       fetchAllLocations();
     }
-  }, [mapData, isLoaded]);
+  }, [mapData, isLoaded, fetchAllLocations]);
 
   const fetchLocation = async (address) => {
     const geocoder = new window.google.maps.Geocoder();
