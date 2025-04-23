@@ -25,9 +25,19 @@ const GoogleMapComponent = ({ mapData }) => {
 
   useEffect(() => {
     if (isLoaded) {
+      const fetchAllLocations = async () => {
+        if (!mapData?.data) return;
+        const storeNames = mapData.data.map((store) => store.store_name);
+        const locationPromises = storeNames.map((storeName) =>
+          fetchLocation(storeName)
+        );
+        const fetchedLocations = await Promise.all(locationPromises);
+        setLocations(fetchedLocations.filter((location) => location !== null));
+        console.log("Fetched Locations:", fetchedLocations);
+      };
       fetchAllLocations();
     }
-  }, [mapData, isLoaded, fetchAllLocations]);
+  }, [mapData, isLoaded]);
 
   const fetchLocation = async (address) => {
     const geocoder = new window.google.maps.Geocoder();
@@ -49,17 +59,6 @@ const GoogleMapComponent = ({ mapData }) => {
         }
       });
     });
-  };
-
-  const fetchAllLocations = async () => {
-    if (!mapData?.data) return;
-    const storeNames = mapData.data.map((store) => store.store_name);
-    const locationPromises = storeNames.map((storeName) =>
-      fetchLocation(storeName)
-    );
-    const fetchedLocations = await Promise.all(locationPromises);
-    setLocations(fetchedLocations.filter((location) => location !== null));
-    console.log("Fetched Locations:", fetchedLocations);
   };
 
   const handleMarkerClick = (location, marker) => {
