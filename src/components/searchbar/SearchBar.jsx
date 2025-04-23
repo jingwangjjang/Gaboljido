@@ -10,6 +10,7 @@ const SearchBar = () => {
   const [links, setLinks] = useState([]);
   const [idTitles, setidTitles] = useState([]);
   const [mapData, setMapData] = useState(null); // Datas for GoogleMapComponent
+  const [isLoading, setIsLoading] = useState(false); // Loading state for handleSearch
 
   const extractVideoId = (url) => {
     try {
@@ -37,7 +38,7 @@ const SearchBar = () => {
   const fetchVideoTitle = async (videoId) => {
     try {
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.REACT_APP_GOOGLE_YOUTUBE_API_KEY}`
       );
       const data = await response.json();
       if (data.items && data.items.length > 0) {
@@ -88,6 +89,7 @@ const SearchBar = () => {
         region_code: selectedOption,
       };
       try {
+        setIsLoading(true);
         const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
           method: "POST",
           headers: {
@@ -106,6 +108,8 @@ const SearchBar = () => {
       } catch (error) {
         console.error("Error during API request:", error);
         alert("An error occurred while sending the request.");
+      } finally {
+        setIsLoading(false);
       }
       setVideos(idTitles);
       setidTitles([]);
@@ -145,6 +149,9 @@ const SearchBar = () => {
                 className="messageInput"
               />
               <select className="dropdown">
+                <option value="default" selected disabled>
+                  구 선택
+                </option>
                 <option value="11">강남구</option>
                 <option value="12">강동구</option>
                 <option value="13">강북구</option>
@@ -224,6 +231,11 @@ const SearchBar = () => {
           </div>
         </form>
         <LinksContainer idTitles={idTitles} />
+        {isLoading ? ( // While loading, show the loading screen
+          <div className="loading-screen">
+            <p>Loading...</p>
+          </div>
+        ) : null}
         <VideosContainer videos={videos} />
         {videos.length > 0 && <GoogleMapComponent mapData={mapData} />}
       </div>
