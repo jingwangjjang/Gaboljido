@@ -1,12 +1,15 @@
 import { Map, GoogleApiWrapper, Marker, InfoWindow } from "google-maps-react";
 import "./GoogleMapComponent.css";
 import ListContainer from "./ListContainer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const GoogleMapComponent = (props) => {
+const GoogleMapComponent = ({ mapData, ...props }) => {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [activeMarker, setActiveMarker] = useState(null);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
+
+  // Refresh the component when the mapData changes
+  useEffect(() => {}, [mapData]);
 
   const handleMapClick = (mapProps, map, clickEvent) => {
     setShowInfoWindow(false); // Close the info window on map click
@@ -46,7 +49,7 @@ const GoogleMapComponent = (props) => {
             </InfoWindow>
           </Map>
         </div>
-        <ListContainer />
+        <ListContainer mapData={mapData} />
       </div>
     </>
   );

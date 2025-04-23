@@ -9,6 +9,7 @@ const SearchBar = () => {
   const [videos, setVideos] = useState([]);
   const [links, setLinks] = useState([]);
   const [idTitles, setidTitles] = useState([]);
+  const [mapData, setMapData] = useState(null); // Datas for GoogleMapComponent
 
   const extractVideoId = (url) => {
     try {
@@ -84,10 +85,10 @@ const SearchBar = () => {
       }
       const payload = {
         url: links,
-        region_code: 26, // temp
+        region_code: selectedOption,
       };
       try {
-        const response = await fetch("http://127.0.0.1:8000/analyze-url/", {
+        const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -97,7 +98,7 @@ const SearchBar = () => {
         if (response.ok) {
           const data = await response.json();
           console.log("Response from API:", data);
-          alert("API request successful!");
+          setMapData(data); // Save response data to state
         } else {
           console.error("API request failed:", response.statusText);
           alert("Failed to send data to the API.");
@@ -144,10 +145,31 @@ const SearchBar = () => {
                 className="messageInput"
               />
               <select className="dropdown">
-                <option value="default">구 선택</option>
-                <option value="option1">성동구</option>
-                <option value="option2">강남구</option>
-                <option value="option3">종로구</option>
+                <option value="11">강남구</option>
+                <option value="12">강동구</option>
+                <option value="13">강북구</option>
+                <option value="14">강서구</option>
+                <option value="15">관악구</option>
+                <option value="16">광진구</option>
+                <option value="17">구로구</option>
+                <option value="18">금천구</option>
+                <option value="19">노원구</option>
+                <option value="20">도봉구</option>
+                <option value="21">동대문구</option>
+                <option value="22">동작구</option>
+                <option value="23">마포구</option>
+                <option value="24">서대문구</option>
+                <option value="25">서초구</option>
+                <option value="26">성동구</option>
+                <option value="27">성북구</option>
+                <option value="28">송파구</option>
+                <option value="29">양천구</option>
+                <option value="30">영등포구</option>
+                <option value="31">용산구</option>
+                <option value="32">은평구</option>
+                <option value="33">종로구</option>
+                <option value="34">중구</option>
+                <option value="35">중랑구</option>
               </select>
             </div>
             <div className="buttons">
@@ -203,7 +225,7 @@ const SearchBar = () => {
         </form>
         <LinksContainer idTitles={idTitles} />
         <VideosContainer videos={videos} />
-        {videos.length > 0 && <GoogleMapComponent />}
+        {videos.length > 0 && <GoogleMapComponent mapData={mapData} />}
       </div>
     </>
   );

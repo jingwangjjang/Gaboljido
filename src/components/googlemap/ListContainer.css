@@ -91,12 +91,6 @@ h1 {
 	margin-bottom: 1rem;
 }
 
-/* .content a {
-	color: currentColor;
-	font-weight: 800;
-	text-decoration: underline;
-} */
-
 .list-container :last-child,
 .content :last-child {
 	margin-bottom: 0;
