@@ -11,10 +11,8 @@ import pandas as pd
 
 # DB
 import psycopg2
-from sqlalchemy import create_engine
 
 # Similarity
-from rapidfuzz import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
 from jamo.jamo import h2j
 from Levenshtein import ratio
@@ -27,8 +25,7 @@ from sentence_transformers import SentenceTransformer
 embedding_model = SentenceTransformer("jhgan/ko-sbert-nli")
 embedding_model.max_seq_length = 128
 
-from transformers import AutoTokenizer, AutoModelForTokenClassification
-
+from transformers import ElectraTokenizerFast, ElectraForTokenClassification
 from google.cloud import storage
 
 def download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR):
@@ -45,15 +42,15 @@ def download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR):
         blob.download_to_filename(local_path)
 
 BUCKET_NAME = "gaboljido_1"
-BLOB_DIR = "ner_model/ner_output/"
+BLOB_DIR = "ner_model/koelectra/"
 LOCAL_MODEL_DIR = "./ner_output/"
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gabolgido-8f7f3309efa3.json"
 download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR)
 
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_DIR)
-    model = AutoModelForTokenClassification.from_pretrained(LOCAL_MODEL_DIR)
+    tokenizer = ElectraTokenizerFast.from_pretrained(LOCAL_MODEL_DIR)
+    model = ElectraForTokenClassification.from_pretrained(LOCAL_MODEL_DIR)
     return tokenizer, model
 
 ner_tokenizer, ner_model = load_model()
@@ -97,6 +94,7 @@ def final_similarity(text1, text2, embedding1, embedding2, smart_weight=0.5, hyb
     return smart_sim * smart_weight + hybrid_sim * hybrid_weight
 
 # config.yaml
+
 with open("/home/gynovzs/fastapi/model_server/config/config.yaml", "r") as file: 
     config = yaml.safe_load(file)
 db_config = config["vectordb"]
@@ -177,9 +175,6 @@ def get_loc_store(region_code):
 
     columns = ['store_id', 'store_name', 'name_embedding', 'blog_reviews', 'visitor_reviews']
     df = pd.DataFrame(rows, columns=columns)
-
-    df['total_reviews'] = df['blog_reviews'] + df['visitor_reviews']
-    df.sort_values(by='total_reviews', ascending=False, inplace=True)
 
     return df
 
