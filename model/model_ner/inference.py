@@ -97,7 +97,7 @@ def final_similarity(text1, text2, embedding1, embedding2, smart_weight=0.5, hyb
     return smart_sim * smart_weight + hybrid_sim * hybrid_weight
 
 # config.yaml
-with open("../../config/config.yaml", "r") as file:
+with open("/home/gynovzs/fastapi/model_server/config/config.yaml", "r") as file: 
     config = yaml.safe_load(file)
 db_config = config["vectordb"]
 
@@ -207,12 +207,10 @@ def make_candidates(stt_list, ocr_list):
     return list(set(stt_query_list + ocr_query_list))
 
 
-def return_dic(region_code, stt_list, ocr_list):
+def return_dic(region_code, query_list):
     
     df = get_loc_store(region_code)
-    print('지역코드 {} 매장 개수 {}개'.format(region_code, len(df)))
-
-    query_list = make_candidates(stt_list, ocr_list)  
+    print('지역코드 {} 매장 개수 {}개'.format(region_code, len(df)))  
     similar_dic = {}
 
     start_time = time.time()
