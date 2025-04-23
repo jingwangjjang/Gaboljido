@@ -13,12 +13,14 @@ app = FastAPI()
 class AnalyzeRequest(BaseModel):
     url: str
     video_id: int
-    region_code: int  # ✅ 추가
+    region_code: int
 
 @app.post("/start-analysis/")
 def start_analysis(req: AnalyzeRequest):
+    # 🔍 모델 파이프라인 실행
     result = run_pipeline(req.url, req.region_code)
 
+    # 🔄 Django로 결과 전송
     payload = {
         "video_id": req.video_id,
         "url": req.url,
@@ -32,13 +34,13 @@ def start_analysis(req: AnalyzeRequest):
         return {
             "status": "error",
             "code": 500,
-            "message": str(e),
-            "data": result  # FastAPI 자체 응답에는 분석 결과 포함
+            "message": f"Django 저장 실패: {str(e)}",
+            "data": result
         }
 
     return {
         "status": "success",
         "code": 200,
-        "message": "모델 분석 완료",
-        "data": result  # ✅ RAG 결과 그대로 반환
+        "message": "모델 분석 완료 및 Django 저장 완료",
+        "data": result
     }
