@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+**/gaboljido_yolo.torchscript
+
 
 # C extensions
 *.so
@@ -110,6 +112,8 @@ ipython_config.py
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
 #pdm.lock
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
 #   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
 #   in version control.
 #   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
@@ -142,6 +146,7 @@ venv.bak/
 .spyproject
 
 # Rope project settings
+
 .ropeproject
 
 # mkdocs documentation
@@ -173,3 +178,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+*.mp4
+ner_output/*.safetensors
+ner_output/*.safetensors

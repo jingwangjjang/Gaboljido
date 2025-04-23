@@ -47,7 +47,10 @@ BUCKET_NAME = "gaboljido_1"
 BLOB_DIR = "ner_model/ner_output/"
 LOCAL_MODEL_DIR = "./ner_output/"
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/hojin/Downloads/gabolgido-8f7f3309efa3.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/hojin/Downloads/gabolgido-8f7f3309efa3.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gabolgido-8f7f3309efa3.json"
+
+
 download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR)
 
 def load_model():
@@ -114,8 +117,9 @@ def final_similarity(text1, text2, embedding1, embedding2, smart_weight=0.5, hyb
     return smart_sim * smart_weight + hybrid_sim * hybrid_weight
 
 
-# config.yaml
-with open("../../config/config.yaml", "r") as file:
+#with open("../../config/config.yaml", "r") as file:
+with open("/home/gynovzs/fastapi/model_server/config/config.yaml", "r") as file:
+
     config = yaml.safe_load(file)
 db_config = config["vectordb"]
 
@@ -222,23 +226,6 @@ def return_dic(region_code, query_list):
     # if len(similar_dic) == 0:
 
     #     # 쿼리 날려서 해당 지역의 매장 리뷰 수 많은 거라도???
+    print('NER 결과 딕셔너리 개수: {}'.format(len(similar_dic)))
+    print(similar_dic) 
     return similar_dic
-
-stt_list = """스타벅스 주소는 서울성동구 아차산로 82 1층이며 초벌에서 나온 우리 고기를 재발하는
-    방식으로 옥수수술 방에 싸먹는게 특징입니다 2 레츠잇칙힌 성수 주소는 서울 성동구 성숙 동이가 273-24이고 미쉐린의 선정된
-    돼지고기 집으로 직원 분들이 구워주시고 고기질이 너무 좋고 가게 추천 메뉴도 있다고 합니다 초이다이닝 주소는 서울성동구 성덕 식 3길 42고 직접 산에서 
-    채취한 약초들로 요리를 하며 전화로 예약을 하고 가야 하고 각종 산체로 만든 반찬들이 너무 맛있다고 합니다 마리우네 주소는 서울 광진구
-    동일로 18길 22이고 재료를 고르는게 아닌 만들어져서 나오는 마라탕이 야채들의 신감이 너무 좋고
-    인위적으로 맵지 않은게 특징이라고 합니다 구독 좋아요 부탁드려요""".split()
-
-ocr_list = """스타벅스 주소는 서울성동구 아차산로 82 1층이며 초벌에서 나온 우리 고기를 재발하는
-    방식으로 옥수수술 방에 싸먹는게 특징입니다 2 레츠잇칙힌 성수 주소는 서울 성동구 성숙 동이가 273-24이고 미쉐린의 선정된
-    돼지고기 집으로 직원 분들이 구워주시고 고기질이 너무 좋고 가게 추천 메뉴도 있다고 합니다 초이다이닝 주소는 서울성동구 성덕 식 3길 42고 직접 산에서 
-    채취한 약초들로 요리를 하며 전화로 예약을 하고 가야 하고 각종 산체로 만든 반찬들이 너무 맛있다고 합니다 마리우네 주소는 서울 광진구
-    동일로 18길 22이고 재료를 고르는게 아닌 만들어져서 나오는 마라탕이 야채들의 신감이 너무 좋고
-    인위적으로 맵지 않은게 특징이라고 합니다 구독 좋아요 부탁드려요""".split()
-
-region_code = 26
-query_list = make_candidates(stt_list, ocr_list)
-
-print(return_dic(region_code, query_list))

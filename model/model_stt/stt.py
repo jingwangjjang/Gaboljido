@@ -8,6 +8,9 @@ from io import BytesIO
 
 # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/hojin/Downloads/gabolgido-8f7f3309efa3.json"
 
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gcs_keys/gabolgido-8f7f3309efa3.json"
+
 # Groq API 설정
 api_key = os.getenv('GROQ_API_KEY')
     
@@ -113,7 +116,9 @@ def get_subtitles_or_transcribe(url, language='ko'):
     # print("🔎 자막 추출 시도 중...")
     captions = get_youtube_caption(video_id, language)
     if captions: # print("✅ 자체 자막이 존재합니다.")
-        
+
+        print('STT 코드->자체 자막:{}'.format(captions))
+
         return captions.split()
 
     else: # print("❌ 자체 자막이 없다면, Groq Whisper로 음성 인식 중...")
@@ -127,6 +132,8 @@ def get_subtitles_or_transcribe(url, language='ko'):
 
         transcription = transcribe_with_groq(audio_bytes)
 
+        print('STT 코드->STT:{}'.format(transcription))
+
         return transcription.split()
 
 def save_transcription(text, output_file="transcription.txt"):
@@ -138,4 +145,8 @@ def save_transcription(text, output_file="transcription.txt"):
         print("❌ 저장할 텍스트가 없습니다.")
 
 
+
 # main: get_subtitles_or_transcribe(url, language='ko')
+
+# main: get_subtitles_or_transcribe(url, language='ko')
+

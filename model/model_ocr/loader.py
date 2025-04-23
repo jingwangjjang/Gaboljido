@@ -1,9 +1,8 @@
-from ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
-from yolov5.utils.general import non_max_suppression, scale_boxes
-from yolov5.utils.augmentations import letterbox
-from yolov5.models.common import DetectMultiBackend
-from yolov5.utils.torch_utils import select_device
+
+import sys
 import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "yolov5"))
+
 import torch
 import re
 import numpy as np
@@ -16,6 +15,15 @@ import json
 import tempfile
 from typing import List, Dict, Any, Tuple, Optional
 from dotenv import load_dotenv 
+
+from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr, convert_av1_to_h264
+
+from utils.general import non_max_suppression, scale_boxes
+from utils.torch_utils import select_device
+from models.common import DetectMultiBackend
+from utils import TryExcept, emojis
+
+
 '''
 참고
 model_path = 
@@ -39,7 +47,8 @@ class YOLOSubtitleDetector:
             ocr_invoke_url (str): Clova OCR API URL
             conf_threshold (float): 검출 신뢰도 임계값으로 줄이면 더 많이 잡는데 오탐이 많아짐 현재 0.3
         """
-        self.model_path = "gaboljido_yolo.torchscript"
+        #self.model_path = "gaboljido_yolo.torchscript"
+        self.model_path = model_path
         self.ocr_secret_key = os.getenv("CLOVA_OCR_SECRET_KEY") or ocr_secret_key
         self.ocr_invoke_url = os.getenv("CLOVA_OCR_API_URL") or ocr_invoke_url
         self.conf_threshold = conf_threshold
@@ -217,13 +226,18 @@ class YOLOSubtitleDetector:
 
         # 1. 유튜브 영상 다운로드
         video_data = download_youtube_video(youtube_url)
+        print("download result: ", video_data)
         if video_data is None:
             logger.error("❌ YouTube 영상 다운로드 실패")
             return []
         print("youtube download 완료료")
-
+        input_path = "/home/gynovzs/ocr_videos/video.mp4"
+        output_path = "/home/gynovzs/ocr_videos/video_h264.mp4"
+        print("🔥 video_path =", video_data.get("video_path"))
+        print("🔥 type(video_path) =", type(video_data.get("video_path")))
+        converted_path = convert_av1_to_h264(input_path, output_path)
         # 2. 프레임 추출
-        frames_info = extract_frames_from_video(video_data["frames"], interval_sec=1.5)
+        frames_info = extract_frames_from_video(converted_path, interval_sec=1.5)
         print(f"🖼️ 총 {len(frames_info)}개 프레임 추출 완료")
 
         # 3. 자막 검출 + OCR
