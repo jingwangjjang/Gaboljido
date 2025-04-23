@@ -1,8 +1,7 @@
 import "./ListContainer.css";
 
-const ListContainer = ({ mapData }) => {
-  // Check if mapData and its nested structure exist
-  const stores = mapData?.data || []; // Safely access the data array
+const ListContainer = ({ mapData, onSectionClick }) => {
+  const stores = mapData?.data || [];
   const personEmojis = [
     "(ˈⰙˈ)",
     "(ˈ᎑ˈ)",
@@ -15,7 +14,6 @@ const ListContainer = ({ mapData }) => {
     "( ‾ʖ̫‾)",
   ];
 
-  // Function to get a random emoji
   const getRandomEmoji = () => {
     const randomIndex = Math.floor(Math.random() * personEmojis.length);
     return personEmojis[randomIndex];
@@ -30,6 +28,7 @@ const ListContainer = ({ mapData }) => {
             className="accordion"
             id={`store-${store.store_id}`}
             key={index}
+            onClick={() => onSectionClick(store.store_id)} // Passing data to the parent container
           >
             <h1 className="title">
               <a href={`#store-${store.store_id}`}>{store.store_name}</a>

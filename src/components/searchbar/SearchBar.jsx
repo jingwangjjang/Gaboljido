@@ -232,9 +232,13 @@ const SearchBar = () => {
         </form>
         <LinksContainer idTitles={idTitles} />
         {isLoading ? ( // While loading, show the loading screen
-          <div className="loading-screen">
-            <p>Loading...</p>
-          </div>
+          <section class="loader">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </section>
         ) : null}
         <VideosContainer videos={videos} />
         {videos.length > 0 && <GoogleMapComponent mapData={mapData} />}

@@ -1,114 +1,168 @@
 .search-bar-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    overflow-x: hidden;
-    overflow-y: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .search-bar-title {
-    font-size: 2.7rem;
-    margin-bottom: 2rem;
+  font-size: 2.7rem;
+  margin-bottom: 2rem;
 }
 .search-bar-title p {
-    display: inline;
-    background: linear-gradient(90deg, #1680c2, #9370DB);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent; 
+  display: inline;
+  background: linear-gradient(90deg, #1680c2, #9370db);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .search-bar {
-    width: 50vw;
-    height: 20vh;
+  width: 50vw;
+  height: 20vh;
 }
 
 .messageBox {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    top: 0;
-    background-color: white;
-    padding: 1rem;
-    border-radius: 10px;
-    border: 2.5px solid gray;
-    box-shadow: 4px 4px 10px rgb(118, 118, 118);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  top: 0;
+  background-color: white;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 2.5px solid gray;
+  box-shadow: 4px 4px 10px rgb(118, 118, 118);
 }
 .inputs {
-    display: flex;
-    flex-direction: row;
-    height: 10rem;
+  display: flex;
+  flex-direction: row;
+  height: 10rem;
 }
 .messageInput {
-    width: 85%;
-    height: 100%;
-    background-color: transparent;
-    outline: none;
-    border: none;
-    color: black;
-    font-size: 1rem;
-    resize: none;
+  width: 85%;
+  height: 100%;
+  background-color: transparent;
+  outline: none;
+  border: none;
+  color: black;
+  font-size: 1rem;
+  resize: none;
 }
 .dropdown {
-    width: 15%;
-    height: 40%;
-    border: none;
-    &, &::picker(select) {
-        appearance: base-select;    
-    }
-    font-size: 0.9rem;
+  width: 15%;
+  height: 40%;
+  border: none;
+  &,
+  &::picker(select) {
+    appearance: base-select;
+  }
+  font-size: 0.9rem;
 }
 .buttons {
-    width: 100%;
-    height: 4rem;
-    padding: 0 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  width: 100%;
+  height: 4rem;
+  padding: 0 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .addButton {
-    cursor: pointer;
-    width: fit-content;
-    height: fit-content;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+  cursor: pointer;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 .addButton svg {
-    height: 18px;
+  height: 18px;
 }
 .addButton svg path {
-    transition: all 0.3s;
+  transition: all 0.3s;
 }
 .addButton svg circle {
-    transition: all 0.3s;
+  transition: all 0.3s;
 }
 .addButton:hover svg path {
-    stroke: black;
+  stroke: black;
 }
 .addButton:hover svg circle {
-    stroke: black;
-    fill: white;
+  stroke: black;
+  fill: white;
 }
 .sendButton {
-    width: fit-content;
-    height: fit-content;
-    background-color: transparent;
-    outline: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s;
+  width: fit-content;
+  height: fit-content;
+  background-color: transparent;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 .sendButton svg {
-    height: 18px;
-    transition: all 0.3s;
+  height: 18px;
+  transition: all 0.3s;
 }
 .sendButton svg path {
-    transition: all 0.3s;
+  transition: all 0.3s;
 }
 .sendButton:hover svg path {
-    fill: white;
-    stroke: black;
+  fill: white;
+  stroke: black;
+}
+
+.loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50%;
+  width: 100%;
+}
+
+.dot {
+  height: 20px;
+  width: 20px;
+  margin-right: 10px;
+  border-radius: 10px;
+  background-color: #b3d4fc;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.dot:last-child {
+  margin-right: 0;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.3s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.1s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    background-color: #b3d4fc;
+    box-shadow: 0 0 0 0 rgba(178, 212, 252, 0.7);
+  }
+
+  50% {
+    transform: scale(1.2);
+    background-color: #6793fb;
+    box-shadow: 0 0 0 10px rgba(178, 212, 252, 0);
+  }
+
+  100% {
+    transform: scale(0.8);
+    background-color: #b3d4fc;
+    box-shadow: 0 0 0 0 rgba(178, 212, 252, 0.7);
+  }
 }

@@ -1,4 +1,3 @@
-// import { Map, GoogleApiWrapper, Marker, InfoWindow } from "google-maps-react";
 import "./GoogleMapComponent.css";
 import ListContainer from "./ListContainer";
 import { useState, useEffect } from "react";
@@ -11,23 +10,28 @@ import {
 
 const GoogleMapComponent = ({ mapData }) => {
   const [selectedPlace, setSelectedPlace] = useState(null);
-  const [activeMarker, setActiveMarker] = useState(null);
-  const [locations, setLocations] = useState([]); // Store Place ID and Lat/Lng
-  const [isLoaded, setIsLoaded] = useState(false); // Track if Google Maps API is loaded
+
+  const [locations, setLocations] = useState([]);
+  // Sample data for locations
+  //   [
+  //     {
+  //         "placeId": "ChIJM2dMgpakfDURtL7E74IE1QU",
+  //         "lat": 37.544577,
+  //         "lng": 127.055991,
+  //         "name": "클로버 성수 성수"
+  //     },
+  // ]
+  const [isLoaded, setIsLoaded] = useState(false); // Google Maps API load status
 
   useEffect(() => {
     if (isLoaded) {
-      fetchAllLocations(); // Fetch locations only after API is loaded
+      fetchAllLocations();
     }
   }, [mapData, isLoaded]);
 
   const fetchLocation = async (address) => {
-    // if (!window.google || !window.google.maps) {
-    //   console.error("Google Maps API is not loaded.");
-    //   return null;
-    // }
     const geocoder = new window.google.maps.Geocoder();
-    address = `${address} 성수`; // temporary fix for address
+    address = `${address} 성수`;
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -41,7 +45,7 @@ const GoogleMapComponent = ({ mapData }) => {
           });
         } else {
           console.error(`Geocoding failed for address "${address}":`, status);
-          resolve(null); // Return null on failure
+          resolve(null);
         }
       });
     });
@@ -58,29 +62,40 @@ const GoogleMapComponent = ({ mapData }) => {
     console.log("Fetched Locations:", fetchedLocations);
   };
 
-  const handleMapClick = () => {
-    setSelectedPlace(null); // Close the info window on map click
-    setActiveMarker(null);
-  };
-
   const handleMarkerClick = (location, marker) => {
     setSelectedPlace(location);
-    setActiveMarker(marker);
+  };
+
+  const handleMapClick = () => {
+    setSelectedPlace(null); // Close InfoWindow
+  };
+
+  // Handling click events in ListContainer
+  const handleSectionClick = (storeId) => {
+    const location = locations.find(
+      (loc) =>
+        mapData.data.find((store) => store.store_id === storeId)?.store_name ===
+        loc.name.replace(/ 성수$/, "")
+    );
+    if (location) {
+      setSelectedPlace(location);
+    }
   };
 
   return (
     <LoadScript
       googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAP_API_KEY}
-      onLoad={() => setIsLoaded(true)} // Set isLoaded to true when API is loaded
+      onLoad={() => setIsLoaded(true)}
     >
       <div className="map-wrapper">
         <div className="map-container">
           <GoogleMap
             mapContainerStyle={{ width: "100%", height: "100%" }}
             zoom={14}
+            // Default map center = 성수
             center={{
-              lat: 37.544206,
-              lng: 127.057101,
+              lat: selectedPlace?.lat || 37.544206,
+              lng: selectedPlace?.lng || 127.057101,
             }}
             onClick={handleMapClick}
           >
@@ -98,7 +113,6 @@ const GoogleMapComponent = ({ mapData }) => {
               >
                 <div>
                   <h4 className="info-window-title">
-                    {/* temp fix for address */}
                     {selectedPlace.name.replace(/ 성수$/, "") ||
                       "Unknown Place"}
                   </h4>
@@ -114,7 +128,10 @@ const GoogleMapComponent = ({ mapData }) => {
             )}
           </GoogleMap>
         </div>
-        <ListContainer mapData={mapData} />
+        <ListContainer
+          mapData={mapData}
+          onSectionClick={handleSectionClick} // Handle click event in ListContainer
+        />
       </div>
     </LoadScript>
   );
