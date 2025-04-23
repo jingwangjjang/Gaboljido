@@ -7,9 +7,27 @@ import numpy as np
 import torch
 from typing import List, Dict, Any, Optional
 import glob
-
+from yt_dlp import YoutubeDL
 
 logger = logging.getLogger("subtitle-detector.utils")
+
+
+def convert_av1_to_h264(input_path, output_path):
+    try:
+        subprocess.run([
+            "ffmpeg",
+            "-i", input_path,
+            "-c:v", "libx264",
+            "-crf", "23",
+            "-preset", "fast",
+            output_path
+        ], check=True)
+        print(f"✅ 변환 성공: {output_path}")
+        return output_path
+    except subprocess.CalledProcessError as e:
+        print(f"❌ ffmpeg 변환 실패: {e}")
+        return None
+
 
 def download_youtube_video(url: str) -> Optional[Dict[str, Any]]:
     try:
@@ -24,20 +42,34 @@ def download_youtube_video(url: str) -> Optional[Dict[str, Any]]:
         os.makedirs(base_dir, exist_ok=True)
         output_template = os.path.join(base_dir, "video.%(ext)s")
 
-        cmd = [
-            "yt-dlp", url,
-            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
-            "--write-auto-sub",
-            "--sub-lang", "ko,en",
-            "--convert-subs", "srt",
-            "--output", output_template,
-            "--quiet"
-        ]
-        subprocess.run(cmd, check=True)
+        #cmd = [
+        #    "yt-dlp", url,
+        #    "-f", "299+140",  # ✔ AV1 제외
+        #    "--write-auto-sub",
+        #    "--sub-lang", "ko,en",
+        #    "--convert-subs", "srt",
+        #    "--output", output_template,
+        #    "--quiet"
+        #]
 
+        ydl_opts = {
+            "format": "bestvideo[ext=mp4][vcodec^=avc1]",
+            "outtmpl": output_template,
+            "quiet": True,
+            "noplaylist": True,
+        }
+
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+        except Exception as e:
+            print(f"❌ yt-dlp 다운로드 실패: {e}")
+            return None
+
+        # 다운로드된 영상 파일 찾기
         video_files = glob.glob(os.path.join(base_dir, "video.mp4"))
         if not video_files:
-            logger.error("❌ 영상 다운로드 실패 (파일 없음)")
+            print("❌ 영상 다운로드 실패 (파일 없음)")
             return None
 
         video_path = video_files[0]
@@ -65,6 +97,7 @@ def download_youtube_video(url: str) -> Optional[Dict[str, Any]]:
         sub_final = sub_files[0] if sub_files else None
 
         return {
+            "video_path": video_path,
             "frames": np.array(frames),
             "audio_path": audio_final,
             "subtitle_path": sub_final

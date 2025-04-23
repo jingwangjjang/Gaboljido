@@ -15,7 +15,7 @@ import tempfile
 from typing import List, Dict, Any, Tuple, Optional
 from dotenv import load_dotenv 
 
-from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr
+from model.model_ocr.ocr_utils import download_youtube_video, extract_frames_from_video, preprocess_image_for_ocr, convert_av1_to_h264
 
 from utils.general import non_max_suppression, scale_boxes
 from utils.torch_utils import select_device
@@ -225,13 +225,18 @@ class YOLOSubtitleDetector:
 
         # 1. 유튜브 영상 다운로드
         video_data = download_youtube_video(youtube_url)
+        print("download result: ", video_data)
         if video_data is None:
             logger.error("❌ YouTube 영상 다운로드 실패")
             return []
         print("youtube download 완료료")
-
+        input_path = "/home/gynovzs/ocr_videos/video.mp4"
+        output_path = "/home/gynovzs/ocr_videos/video_h264.mp4"
+        print("🔥 video_path =", video_data.get("video_path"))
+        print("🔥 type(video_path) =", type(video_data.get("video_path")))
+        converted_path = convert_av1_to_h264(input_path, output_path)
         # 2. 프레임 추출
-        frames_info = extract_frames_from_video(video_data["frames"], interval_sec=1.5)
+        frames_info = extract_frames_from_video(converted_path, interval_sec=1.5)
         print(f"🖼️ 총 {len(frames_info)}개 프레임 추출 완료")
 
         # 3. 자막 검출 + OCR

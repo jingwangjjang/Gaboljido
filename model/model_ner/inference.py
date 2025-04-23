@@ -48,7 +48,7 @@ BLOB_DIR = "ner_model/ner_output/"
 LOCAL_MODEL_DIR = "./ner_output/"
 
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/hojin/Downloads/gabolgido-8f7f3309efa3.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gcs_keys/gabolgido-8f7f3309efa3.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gabolgido-8f7f3309efa3.json"
 
 download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR)
 
