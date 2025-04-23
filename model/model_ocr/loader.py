@@ -4,6 +4,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "yolov5"))
 
 import torch
+import re
 import numpy as np
 import cv2
 import logging
@@ -221,7 +222,7 @@ class YOLOSubtitleDetector:
 
         return texts
     
-    def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5) -> List[str]:
+    def process_youtube_pipeline(self, youtube_url: str, interval_sec: float = 1.5, region_code: Optional[int] = None) -> List[str]:
 
         # 1. 유튜브 영상 다운로드
         video_data = download_youtube_video(youtube_url)
@@ -264,12 +265,14 @@ class YOLOSubtitleDetector:
         if raw_texts:
             seen = set()
             for text in raw_texts:
-                if text not in seen:
-                    seen.add(text)
-                    deduped_texts.append(text)
-        
-        print(f"최종 반환 text:{deduped_texts}")
+                # 한글만 남기고 나머지 제거
+                korean_only = re.sub(r'[^가-힣\s]', '', text)
+                korean_only = korean_only.strip()
+                if korean_only and korean_only not in seen:
+                    seen.add(korean_only)
+                    deduped_texts.append(korean_only)
 
+        #print(f"최종 반환 text:{deduped_texts}")
         logger.info(f"✅ 파이프라인 완료: {len(deduped_texts)}개 자막 검출됨")
         return deduped_texts
 

@@ -50,6 +50,7 @@ LOCAL_MODEL_DIR = "./ner_output/"
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/hojin/Downloads/gabolgido-8f7f3309efa3.json"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/gynovzs/gabolgido-8f7f3309efa3.json"
 
+
 download_model_from_gcs(BUCKET_NAME, BLOB_DIR, LOCAL_MODEL_DIR)
 
 def load_model():
@@ -116,9 +117,9 @@ def final_similarity(text1, text2, embedding1, embedding2, smart_weight=0.5, hyb
     return smart_sim * smart_weight + hybrid_sim * hybrid_weight
 
 
-# config.yaml
 #with open("../../config/config.yaml", "r") as file:
 with open("/home/gynovzs/fastapi/model_server/config/config.yaml", "r") as file:
+
     config = yaml.safe_load(file)
 db_config = config["vectordb"]
 
@@ -228,4 +229,3 @@ def return_dic(region_code, query_list):
     print('NER 결과 딕셔너리 개수: {}'.format(len(similar_dic)))
     print(similar_dic) 
     return similar_dic
-
