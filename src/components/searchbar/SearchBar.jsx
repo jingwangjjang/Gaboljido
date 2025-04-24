@@ -78,46 +78,51 @@ const SearchBar = () => {
   };
 
   const handleSearch = async () => {
-    if (idTitles.length > 0) {
-      const selectedOption = document.querySelector(".dropdown").value; // Selected option value
-      if (selectedOption === "default") {
-        alert("Please select a region.");
-        return;
-      }
-      const payload = {
-        url: links,
-        region_code: selectedOption,
-      };
-      try {
-        setIsLoading(true);
-        const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Response from API:", data);
-          setMapData(data); // Save response data to state
-        } else {
-          console.error("API request failed:", response.statusText);
-          alert("Failed to send data to the API.");
+    setIsLoading(true);
+    setTimeout(async () => {
+      if (idTitles.length > 0) {
+        const selectedOption = document.querySelector(".dropdown").value; // Selected option value
+        if (selectedOption === "default") {
+          alert("Please select a region.");
+          return;
         }
-      } catch (error) {
-        console.error("Error during API request:", error);
-        alert("An error occurred while sending the request.");
-      } finally {
-        setIsLoading(false);
+        const payload = {
+          url: links,
+          region_code: selectedOption,
+        };
+        try {
+          const response = await fetch(
+            "http://34.22.100.60:8000/analyze-url/",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Response from API:", data);
+            setMapData(data); // Save response data to state
+          } else {
+            console.error("API request failed:", response.statusText);
+            alert("Failed to send data to the API.");
+          }
+        } catch (error) {
+          console.error("Error during API request:", error);
+          alert("An error occurred while sending the request.");
+        } finally {
+          setIsLoading(false);
+        }
+        setVideos(idTitles);
+        setidTitles([]);
+        setLinks([]);
+        setQuery("");
+      } else {
+        alert("Please enter a valid YouTube link.");
       }
-      setVideos(idTitles);
-      setidTitles([]);
-      setLinks([]);
-      setQuery("");
-    } else {
-      alert("Please enter a valid YouTube link.");
-    }
+    }, 60000); // Delay execution by 1 minute (60000 ms)
   };
 
   return (
