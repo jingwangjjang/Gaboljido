@@ -56,8 +56,8 @@ const SearchBar = () => {
   };
 
   const handleAddLink = async () => {
-    if (idTitles.length > 4) {
-      alert("You can only add up to 5 links.");
+    if (idTitles.length > 1) {
+      alert("You can only add up to one video.");
       setQuery("");
       return;
     }
@@ -78,51 +78,50 @@ const SearchBar = () => {
   };
 
   const handleSearch = async () => {
-    setIsLoading(true);
-    setTimeout(async () => {
-      if (idTitles.length > 0) {
-        const selectedOption = document.querySelector(".dropdown").value; // Selected option value
-        if (selectedOption === "default") {
-          alert("Please select a region.");
-          return;
-        }
-        const payload = {
-          url: links,
-          region_code: selectedOption,
-        };
-        try {
-          const response = await fetch(
-            "http://34.22.100.60:8000/analyze-url/",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Response from API:", data);
-            setMapData(data); // Save response data to state
-          } else {
-            console.error("API request failed:", response.statusText);
-            alert("Failed to send data to the API.");
-          }
-        } catch (error) {
-          console.error("Error during API request:", error);
-          alert("An error occurred while sending the request.");
-        } finally {
-          setIsLoading(false);
-        }
-        setVideos(idTitles);
-        setidTitles([]);
-        setLinks([]);
-        setQuery("");
-      } else {
-        alert("Please enter a valid YouTube link.");
+    if (idTitles.length > 0) {
+      const selectedOption = document.querySelector(".dropdown").value; // Selected option value
+      if (selectedOption === "default") {
+        alert("Please select a region.");
+        return;
       }
-    }, 60000); // Delay execution by 1 minute (60000 ms)
+
+      const payload = {
+        url: links,
+        region_code: selectedOption,
+      };
+
+      try {
+        setIsLoading(true);
+        const response = await fetch("http://34.22.100.60:8000/analyze-url/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Response from API:", data);
+          setMapData(data); // Save response data to state
+        } else {
+          console.error("API request failed:", response.statusText);
+          alert("Failed to send data to the API.");
+        }
+      } catch (error) {
+        console.error("Error during API request:", error);
+        alert("An error occurred while sending the request.");
+      } finally {
+        setIsLoading(false);
+      }
+
+      setVideos(idTitles);
+      setidTitles([]);
+      setLinks([]);
+      setQuery("");
+    } else {
+      alert("Please enter a valid YouTube link.");
+    }
   };
 
   return (

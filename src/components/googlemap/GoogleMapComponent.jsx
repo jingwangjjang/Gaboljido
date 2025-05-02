@@ -10,7 +10,6 @@ import {
 
 const GoogleMapComponent = ({ mapData }) => {
   const [selectedPlace, setSelectedPlace] = useState(null);
-
   const [locations, setLocations] = useState([]);
   // Sample data for locations
   //   [
@@ -41,7 +40,7 @@ const GoogleMapComponent = ({ mapData }) => {
 
   const fetchLocation = async (address) => {
     const geocoder = new window.google.maps.Geocoder();
-    address = `${address} 성수`;
+    address = `${address}`;
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -74,7 +73,7 @@ const GoogleMapComponent = ({ mapData }) => {
     const location = locations.find(
       (loc) =>
         mapData.data.find((store) => store.store_id === storeId)?.store_name ===
-        loc.name.replace(/ 성수$/, "")
+        loc.name
     );
     if (location) {
       setSelectedPlace(location);
@@ -112,8 +111,7 @@ const GoogleMapComponent = ({ mapData }) => {
               >
                 <div>
                   <h4 className="info-window-title">
-                    {selectedPlace.name.replace(/ 성수$/, "") ||
-                      "Unknown Place"}
+                    {selectedPlace.name || "Unknown Place"}
                   </h4>
                   <a
                     href={`https://www.google.com/maps/place/?q=place_id:${selectedPlace.placeId}`}
