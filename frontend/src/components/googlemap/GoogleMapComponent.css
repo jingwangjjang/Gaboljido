@@ -1,0 +1,22 @@
+.map-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 30rem;
+    display: flex;
+    justify-content: space-around;
+    margin-top: 1rem;
+}
+
+.map-container {
+    position: relative;
+    width: 50vw;
+    height: 100%;
+}
+
+.info-window-title {
+    color: black;
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+  }
